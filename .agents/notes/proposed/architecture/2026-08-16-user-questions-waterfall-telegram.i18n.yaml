@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-16-user-questions-waterfall-telegram.md
-2026-08-16-user-questions-waterfall-telegram.md: c30aa65a18de62f978dfaab19bf19478debf5d98
-2026-08-16-user-questions-waterfall-telegram.zh.md: 6bd077a932d878be7f6ab3ecd4acc08dc3466dac
+2026-08-16-user-questions-waterfall-telegram.md: 63cff3f51574d9abbbd77053919c1084ce73b12f
+2026-08-16-user-questions-waterfall-telegram.zh.md: 4362e1144a3038eaff99e6a0ec7bb6d15300439a

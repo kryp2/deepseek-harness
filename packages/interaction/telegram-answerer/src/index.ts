@@ -58,7 +58,7 @@ export interface Config {
 export const name = 'telegram-answerer'
 
 /** Optional services only: the answerer degrades to a no-op when Telegram is not configured. */
-export const inject = [] as const
+export const inject: string[] = []
 
 /**
  * Build the inline keyboard for one question, or undefined without options.

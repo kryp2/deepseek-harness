@@ -2011,21 +2011,21 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'userQuestions',
-    summary: '`ctx.userQuestions`: one active UI provider plus an `ask()` API.',
-    description: '`ctx.userQuestions`: one active UI provider plus an `ask()` API.',
+    summary: '`ctx.userQuestions`: the human-answer seam.',
+    description: '`ctx.userQuestions`: the human-answer seam. Answerers register on the `\'user-questions/ask\'` waterfall; `ask()` dispatches to them and returns the first answer.',
     methods: [
       {
         signature: 'registerProvider(provider: UserQuestionProvider): () => void',
-        description: 'Register the UI provider. Only one provider may be active in a context.',
+        description: 'Register one answerer that collects the human answer. Retained as a shim over the \'user-questions/ask\' waterfall: it registers a listener that calls the provider\'s `ask`. New answerers should register on the waterfall directly (`ctx.on(\'user-questions/ask\', ...)`) so multiple channels can answer the same question and the first answer wins.',
         parameters: [{ name: 'provider', description: 'UI-side implementation that collects answers.' }],
         returns: 'Disposer that unregisters this provider.',
       },
       {
         signature: 'async ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>',
-        description: 'Ask the active UI provider and wait for the user\'s answer.\n\nWhen a caller supplies an agent, human interaction is valid only for the exact live runtime root. Runtime ownership, not durable session lineage, decides this boundary: an owned child has no human answerer and would block forever, while a lineage-bearing session resumed as a new runtime root may ask normally.',
+        description: 'Ask the composed answerers and wait for the first human answer.\n\nWhen a caller supplies an agent, human interaction is valid only for the exact live runtime root. Runtime ownership, not durable session lineage, decides this boundary: an owned child has no human answerer and would block forever, while a lineage-bearing session resumed as a new runtime root may ask normally.',
         parameters: [{ name: 'request', description: 'Questions, owner agent, and abort signal.' }],
         returns: 'The answer chosen or typed by the human.',
-        throws: ['{UserQuestionError} code `CALLER_NOT_LIVE` when a supplied agent is not the registry\'s exact live instance, or `DELEGATED_CALLER` when that live agent is owned by another agent.'],
+        throws: ['{UserQuestionError} code `CALLER_NOT_LIVE` when a supplied agent is not the registry\'s exact live instance, or `DELEGATED_CALLER` when that live agent is owned by another agent, or `NO_ANSWERER` when no answerer is composed (fail closed).'],
       },
     ],
   },
@@ -2562,6 +2562,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Observe the frozen, lossless-JSON final outcome.',
     description: 'Observe the frozen, lossless-JSON final outcome. Listener failures are contained. Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): keyed by `exec.agent`.',
     parameters: [{ name: 'exec', description: 'the execution object that traversed the pipeline.' }, { name: 'result', description: 'a deep-frozen snapshot of the final returned result.' }],
+  },
+  {
+    name: 'user-questions/ask',
+    mode: 'waterfall',
+    signature: '\'user-questions/ask\'(this: Scoped<UserQuestionService>, req: AskUserQuestionRequest, next: () => Promise<AskUserQuestionAnswer>): Promise<AskUserQuestionAnswer>',
+    summary: 'Ask composed answerers for one human answer.',
+    description: 'Ask composed answerers for one human answer. Return an answer to claim the question or call `next()`; the end of the chain is the fail-closed default (the caller observes a `UserQuestionError` code `NO_ANSWERER`). Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent\'s questions.',
+    parameters: [{ name: 'req', description: 'the pending question set (questions, owner agent, signal).' }],
   },
   {
     name: 'workflow/agent-end',
@@ -4538,6 +4546,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'UserQuestionProvider',
     declaration: 'export interface UserQuestionProvider {\n    ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>;\n}',
+  },
+  {
+    name: 'UserQuestionService',
+    declaration: 'export class UserQuestionService extends Service {\n    constructor(ctx: Context);\n    registerProvider(provider: UserQuestionProvider): () => void;\n    async ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>;\n}',
   },
   {
     name: 'WebBootEntry',
