@@ -220,4 +220,223 @@ describe('telegram-answerer wired answer path', () => {
     expect(answer).toEqual({ answers: [{ id: 'q', selected: [], custom: 'right chat' }] })
     expect(polls).toBe(2)
   })
+
+  it('falls through when the answer deadline elapses before a reply', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    let polls = 0
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      polls += 1
+      return shellResult({ stdout: { text: JSON.stringify({ ok: true, result: [] }), truncated: false } })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 1 })
+
+    // The poll deadline expires with no reply, so the answerer falls through and
+    // the ask fails closed with NO_ANSWERER.
+    await expect(ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] }))
+      .rejects.toMatchObject({ name: 'UserQuestionError', code: 'NO_ANSWERER' })
+  })
+
+  it('falls through when Telegram rejects the send', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    const { executor } = shell(async () => shellResult({ exitCode: 1, stdout: { text: 'curl failed', truncated: false } }))
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 2000 })
+
+    await expect(ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] }))
+      .rejects.toMatchObject({ name: 'UserQuestionError', code: 'NO_ANSWERER' })
+  })
+
+  it('skips a malformed getUpdates response and eventually answers', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    let polls = 0
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      polls += 1
+      if (polls === 1) return shellResult({ stdout: { text: 'not json', truncated: false } })
+      return shellResult({
+        stdout: {
+          text: JSON.stringify({ ok: true, result: [{ update_id: 1, message: { chat: { id: 123456 }, text: 'after bad json' } }] }),
+          truncated: false,
+        },
+      })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 2000 })
+
+    const answer = await ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] })
+
+    expect(answer).toEqual({ answers: [{ id: 'q', selected: [], custom: 'after bad json' }] })
+    expect(polls).toBe(2)
+  })
+
+  it('skips a non-ok getUpdates response and eventually answers', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    let polls = 0
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      polls += 1
+      if (polls === 1) return shellResult({ stdout: { text: JSON.stringify({ ok: false }), truncated: false } })
+      return shellResult({
+        stdout: {
+          text: JSON.stringify({ ok: true, result: [{ update_id: 1, message: { chat: { id: 123456 }, text: 'after bad ok' } }] }),
+          truncated: false,
+        },
+      })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 2000 })
+
+    const answer = await ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] })
+
+    expect(answer).toEqual({ answers: [{ id: 'q', selected: [], custom: 'after bad ok' }] })
+    expect(polls).toBe(2)
+  })
+
+  it('uses the default timeout ceiling when no config is supplied', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      return shellResult({
+        stdout: {
+          text: JSON.stringify({ ok: true, result: [{ update_id: 1, message: { chat: { id: 123456 }, text: 'default timeout' } }] }),
+          truncated: false,
+        },
+      })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx)
+
+    const answer = await ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] })
+
+    expect(answer).toEqual({ answers: [{ id: 'q', selected: [], custom: 'default timeout' }] })
+  })
+
+  it('ignores a callback from the wrong chat and an update with neither callback nor message', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    let polls = 0
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      polls += 1
+      if (polls === 1) {
+        return shellResult({
+          stdout: {
+            text: JSON.stringify({
+              ok: true,
+              result: [
+                { update_id: 1, callback_query: { from: { id: 999999 }, data: 'opt:0' } },
+                { update_id: 2 },
+                { update_id: 3, callback_query: { from: { id: 123456 } } },
+              ],
+            }),
+            truncated: false,
+          },
+        })
+      }
+      return shellResult({
+        stdout: {
+          text: JSON.stringify({ ok: true, result: [{ update_id: 4, message: { chat: { id: 123456 }, text: 'final' } }] }),
+          truncated: false,
+        },
+      })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 2000 })
+
+    const answer = await ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] })
+
+    expect(answer).toEqual({ answers: [{ id: 'q', selected: [], custom: 'final' }] })
+    expect(polls).toBe(2)
+  })
+
+  it('ignores updates with no update_id, from-only id, and empty text before a valid reply', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    let polls = 0
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      polls += 1
+      if (polls === 1) {
+        return shellResult({
+          stdout: {
+            text: JSON.stringify({
+              ok: true,
+              result: [
+                { message: { from: { id: 123456 }, text: '' } },
+                { update_id: 5, message: { from: { id: 999999 }, text: 'wrong chat' } },
+              ],
+            }),
+            truncated: false,
+          },
+        })
+      }
+      return shellResult({
+        stdout: {
+          text: JSON.stringify({ ok: true, result: [{ update_id: 6, message: { chat: { id: 123456 }, text: 'the end' } }] }),
+          truncated: false,
+        },
+      })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 2000 })
+
+    const answer = await ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Say something' }] })
+
+    expect(answer).toEqual({ answers: [{ id: 'q', selected: [], custom: 'the end' }] })
+    expect(polls).toBe(2)
+  })
+
+  it('ignores a callback with no from id and then answers from a valid callback', async () => {
+    const ctx = new Context()
+    await ctx.plugin(UserQuestionService)
+
+    let polls = 0
+    const { executor } = shell(async (spec) => {
+      if (spec.command.includes('sendMessage')) return shellResult({ stdout: { text: JSON.stringify({ ok: true }), truncated: false } })
+      polls += 1
+      if (polls === 1) {
+        return shellResult({
+          stdout: {
+            text: JSON.stringify({ ok: true, result: [{ update_id: 1, callback_query: { from: {} } }] }),
+            truncated: false,
+          },
+        })
+      }
+      return shellResult({
+        stdout: {
+          text: JSON.stringify({ ok: true, result: [{ update_id: 2, callback_query: { from: { id: 123456 }, data: 'opt:0' } }] }),
+          truncated: false,
+        },
+      })
+    })
+    ctx.provide('shell', executor)
+    ctx.provide('credentials', credentials({ token: 'tok', chatId: '123456' }))
+    applyAnswerer(ctx, { timeoutMs: 2000 })
+
+    const answer = await ctx.userQuestions.ask({ questions: [{ id: 'q', question: 'Pick', options: [{ label: 'A' }] }] })
+
+    expect(answer).toEqual({ answers: [{ id: 'q', selected: ['A'] }] })
+    expect(polls).toBe(2)
+  })
 })

@@ -158,24 +158,23 @@ async function sendQuestion(
 }
 
 /**
- * Long-poll `getUpdates` until a reply from the authorized chat arrives, the signal aborts,
- * or the ceiling elapses. Returns undefined to fall through (no answer).
+ * Long-poll `getUpdates` until a reply from the authorized chat arrives or the ceiling
+ * elapses. Returns undefined to fall through (no answer). Abort is not observed here:
+ * the user-questions service races the caller's signal against the whole dispatch and
+ * settles `ASK_ABORTED` itself, so the poll only needs its own deadline.
  * @param shell - the shell executor.
  * @param config - the resolved telegram credentials.
- * @param signal - the ask's abort signal; aborts the wait.
  * @param timeoutMs - a hard ceiling for the whole wait; exceeded means no answer.
  * @returns the reply, or undefined.
  */
 async function pollReply(
   shell: ShellExecutor,
   config: TelegramConfig,
-  signal: AbortSignal | undefined,
   timeoutMs: number,
 ): Promise<Reply | undefined> {
   const deadline = Date.now() + timeoutMs
   let offset = 0
   while (true) {
-    if (signal?.aborted) return undefined
     if (Date.now() > deadline) return undefined
     const url = `${API}/bot${config.token}/getUpdates?timeout=25&offset=${offset}`
     const spec = shell.resolve({ command: `curl -s -m 45 ${quoteShell(url)}` })
@@ -230,18 +229,17 @@ export function apply(ctx: Context, config: Config = {}): void {
 
   ctx.on('user-questions/ask', (request: AskUserQuestionRequest, next) => {
     const questions = request.questions
-    if (questions.length === 0) return next()
     const run = async (): Promise<AskUserQuestionAnswer> => {
       const telegram = await resolveConfig(credentials)
       if (telegram === undefined) throw new Error('Telegram not configured')
       const answers: AnswerItem[] = []
-      for (let index = 0; index < questions.length; index += 1) {
-        const question = questions[index]
-        if (question === undefined) break
+      let index = 0
+      for (const question of questions) {
         await sendQuestion(shell, telegram, question, index, questions.length)
-        const reply = await pollReply(shell, telegram, request.signal, timeoutMs)
+        const reply = await pollReply(shell, telegram, timeoutMs)
         if (reply === undefined) throw new Error('Telegram answer timed out')
         answers.push(answerItemFor(reply, question))
+        index += 1
       }
       return { answers }
     }
