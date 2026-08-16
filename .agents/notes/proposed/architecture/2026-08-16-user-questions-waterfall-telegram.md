@@ -80,3 +80,33 @@ preserving a migration path for the shipped web provider:
   end-to-end (the product-visible path must not regress).
 - A keyless snapshot for the assembled `ask_user_question` transcript.
 - `typecheck`, `build`, `test:coverage` on the touched packages, and a doc-sync run.
+
+## Implementation status (fork `kryp2/deepseek-harness`, branch `feat/user-questions-waterfall-telegram`)
+
+Done and green (459 tests across `user-questions`, `tool-ask-user`, `plan-mode`, `apiproxy`):
+
+- `UserQuestionService` dispatches through a scoped `'user-questions/ask'` waterfall; a
+  throwing answerer propagates its own error, and the unreached end of the chain is the
+  fail-closed `NO_ANSWERER`. `registerProvider` remains as a shim that registers a listener.
+- `dsh-host-apiproxy` registers its web-GUI answerer as `ctx.on('user-questions/ask', …)`
+  and no longer injects `userQuestions`.
+- `@deepseek-ai/dsh-scope` added as a peer/dev dependency of `user-questions`.
+- Downstream `NO_PROVIDER` assertions updated to `NO_ANSWERER`.
+
+Outstanding:
+
+1. **Telegram answerer package** (`packages/interaction/telegram-answerer`): an opt-in plugin
+   registering `ctx.on('user-questions/ask', …)` that posts the question to Telegram (inline
+   buttons + free text) and resolves from the reply. Reuse the transport logic already proven
+   in `peck-meta/tools/telegram-bridge-1.package.js`: `sendMessage`/`getUpdates` long-poll via
+   `ctx.shell`, credentials from `ctx.credentials`. Needs its own `package.json`, `tsconfig`,
+   `invariant.ts`, README (i18n + Known Limitations + Model Experience), tests, workspace
+   aggregate registration, and a real-composition + snapshot per the repo gates.
+2. **Real-composition test + keyless snapshot** proving the web answerer still answers
+   `ask_user_question`, and that a second answerer (Telegram) can also answer.
+3. **Full gate run**: `pnpm run typecheck`, `pnpm run test:coverage`, `pnpm run build`,
+   `pnpm run doc-sync`, `pnpm run hygiene` on the whole workspace.
+4. **Switch-over**: point this DSH install at the fork by building the fork and loading its
+   `apps/cli` bundle instead of the npm `@deepseek-ai/dsh@0.1.0-rc.6`, then re-adding the
+   Telegram answerer row and the mirror behavior to the host/preset composition.
+
