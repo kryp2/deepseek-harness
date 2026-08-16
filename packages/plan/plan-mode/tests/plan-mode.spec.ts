@@ -734,11 +734,11 @@ describe('exit_plan_mode', () => {
     expect(foldPlanMode(agent.session.events)).toBe(true)
   })
 
-  it('degrades the same way when the seam has no provider (NO_PROVIDER)', async () => {
+  it('degrades the same way when the seam has no answerer (NO_ANSWERER)', async () => {
     const { ctx, agent } = await setupWithReview()
     const result = await callExit(ctx, agent)
     expect(result.isError).toBe(true)
-    expect(result.content).toEqual([{ type: 'text', text: 'Error: no user-questions provider is registered' }])
+    expect(result.content).toEqual([{ type: 'text', text: 'Error: no user-questions answerer is composed' }])
     expect(foldPlanMode(agent.session.events)).toBe(true)
   })
 

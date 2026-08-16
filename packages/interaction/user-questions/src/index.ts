@@ -151,15 +151,11 @@ export class UserQuestionService extends Service {
     const answer: Promise<AskUserQuestionAnswer> = Promise.resolve().then(
       () => this.ctx.waterfall(
         scopeTarget(this, request.agent), 'user-questions/ask', request,
+        // The unreached end of the chain is the fail-closed default. A listener
+        // that throws propagates its own error instead (the plan-review flow
+        // relies on the answerer's message reaching the caller).
         () => Promise.reject(new UserQuestionError('no user-questions answerer is composed', 'NO_ANSWERER')),
       ),
-    ).then(
-      result => result,
-      // A throwing answerer must fail the QUESTION closed, not the caller's
-      // tool call open — the seam contains its callbacks.
-      () => {
-        throw new UserQuestionError('no user-questions answerer answered', 'NO_ANSWERER')
-      },
     )
     const signal = request.signal
     if (signal === undefined) return answer

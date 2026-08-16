@@ -252,7 +252,7 @@ describe('ask_user_question tool', () => {
 
     expect(result).toMatchObject({
       isError: true,
-      error: { info: { name: 'UserQuestionError', code: 'NO_PROVIDER' } },
+      error: { info: { name: 'UserQuestionError', code: 'NO_ANSWERER' } },
     })
   })
 
