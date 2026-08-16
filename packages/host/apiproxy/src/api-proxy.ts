@@ -1335,43 +1335,41 @@ export function createApiProxy(ctx: Context, defaults: ApiProxyDefaults): ApiPro
     })
   }
 
-  const disposeProvider = ctx.userQuestions.registerProvider({
-    ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer> {
-      const sessionId = request.agent?.id
-      if (sessionId === undefined) {
-        return Promise.reject(new UserQuestionError(
-          'web user interaction requires an agent-owned session', 'ASK_MISSING_AGENT'))
+  const disposeQuestionAnswerer = ctx.on('user-questions/ask', (request: AskUserQuestionRequest) => {
+    const sessionId = request.agent?.id
+    if (sessionId === undefined) {
+      return Promise.reject(new UserQuestionError(
+        'web user interaction requires an agent-owned session', 'ASK_MISSING_AGENT'))
+    }
+    return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
+      const rpcId = RpcId(randomUUID())
+      const pending: PendingQuestion = {
+        rpcId, sessionId, questions: request.questions, resolve, reject,
+        ...(request.signal === undefined ? {} : { signal: request.signal }),
       }
-      return new Promise<AskUserQuestionAnswer>((resolve, reject) => {
-        const rpcId = RpcId(randomUUID())
-        const pending: PendingQuestion = {
-          rpcId, sessionId, questions: request.questions, resolve, reject,
-          ...(request.signal === undefined ? {} : { signal: request.signal }),
-        }
-        const onAbort = (): void => {
-          claimQuestion(pending, 'cancelled')
-          reject(new UserQuestionError(
-            'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
-        }
-        pending.onAbort = onAbort
-        pendingQuestions.set(rpcId, pending)
-        request.signal?.addEventListener('abort', onAbort, { once: true })
-        const envelope: RpcRequest<MuxFrame> = {
-          rpcId,
-          payload: { type: 'question/requested', sessionId, questions: request.questions },
-        }
-        for (const queue of muxQueues) queue.push(envelope)
-      })
-    },
+      const onAbort = (): void => {
+        claimQuestion(pending, 'cancelled')
+        reject(new UserQuestionError(
+          'ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
+      }
+      pending.onAbort = onAbort
+      pendingQuestions.set(rpcId, pending)
+      request.signal?.addEventListener('abort', onAbort, { once: true })
+      const envelope: RpcRequest<MuxFrame> = {
+        rpcId,
+        payload: { type: 'question/requested', sessionId, questions: request.questions },
+      }
+      for (const queue of muxQueues) queue.push(envelope)
+    })
   })
   ctx.effect(() => () => {
-    disposeProvider()
+    disposeQuestionAnswerer()
     for (const pending of [...pendingQuestions.values()]) {
       claimQuestion(pending, 'cancelled')
       pending.reject(new UserQuestionError(
-        'web user-questions provider was disposed', 'ASK_ABORTED'))
+        'web user-questions answerer was disposed', 'ASK_ABORTED'))
     }
-  }, 'api-proxy: user-questions provider')
+  }, 'api-proxy: user-questions answerer')
 
   // --- Approval pending registry ------------------------------------------
   // The proxy is the approval channel for every agent this host owns: an ask
