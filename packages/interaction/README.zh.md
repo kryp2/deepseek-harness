@@ -11,6 +11,7 @@
 | [`permission/`](permission-presets/README.md) | 呈现并持久化面向用户的权限预设。 | `ctx.permissionPresets` |
 | [`user-questions/`](user-questions/README.md) | 定义与提供方无关的用户问答 seam。 | `ctx.userQuestions` |
 | [`tool-ask-user/`](tool-ask-user/README.md) | 向模型提供用户问题。 | （注册到 `ctx.tools`） |
+| [`telegram-answerer/`](telegram-answerer/README.md) | 可选回答者：通过 Telegram 向用户提问。 | （注册到 `user-questions/ask`） |
 
 这些包通过现有的 agent 和会话约定集成，而不改变循环。交互式应用提供具体的命令、审批和提问适配器；自动化使用 [`acp/`](../acp/README.md)，可运行的演示组合包位于 [`examples/`](../examples/README.md)。产品 [`dsh`](../../apps/cli/README.md) CLI（命令行界面）直接组合这些包。
 
