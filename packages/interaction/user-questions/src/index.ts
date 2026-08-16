@@ -10,10 +10,25 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { scopeTarget } from '@deepseek-ai/dsh-scope'
+import type { Scoped } from '@deepseek-ai/dsh-scope'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     userQuestions: UserQuestionService
+  }
+
+  interface Events {
+    /**
+     * Ask composed answerers for one human answer. Return an answer to claim the
+     * question or call `next()`; the end of the chain is the fail-closed default
+     * (the caller observes a `UserQuestionError` code `NO_ANSWERER`).
+     * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners
+     * receive only that agent's questions.
+     * @param req - the pending question set (questions, owner agent, signal).
+     * @mode waterfall
+     */
+    'user-questions/ask'(this: Scoped<UserQuestionService>, req: AskUserQuestionRequest, next: () => Promise<AskUserQuestionAnswer>): Promise<AskUserQuestionAnswer>
   }
 }
 
@@ -47,35 +62,34 @@ export class UserQuestionError extends HarnessError {
   }
 }
 
-/** `ctx.userQuestions`: one active UI provider plus an `ask()` API. */
+/**
+ * `ctx.userQuestions`: the human-answer seam. Answerers register on the
+ * `'user-questions/ask'` waterfall; `ask()` dispatches to them and returns
+ * the first answer.
+ */
 export class UserQuestionService extends Service {
-  private provider: UserQuestionProvider | undefined
-
   constructor(ctx: Context) {
     super(ctx, 'userQuestions')
   }
 
   /**
-   * Register the UI provider. Only one provider may be active in a context.
+   * Register one answerer that collects the human answer. Retained as a shim
+   * over the {@link 'user-questions/ask'} waterfall: it registers a listener that
+   * calls the provider's `ask`. New answerers should register on the waterfall
+   * directly (`ctx.on('user-questions/ask', ...)`) so multiple channels can
+   * answer the same question and the first answer wins.
    *
    * @param provider UI-side implementation that collects answers.
    * @returns Disposer that unregisters this provider.
    */
   registerProvider(provider: UserQuestionProvider): () => void {
-    const dispose = this.ctx.effect(function* (this: UserQuestionService) {
-      if (this.provider !== undefined) {
-        throw new UserQuestionError('a user-questions provider is already registered', 'DUPLICATE_PROVIDER')
-      }
-      this.provider = provider
-      yield () => {
-        this.provider = undefined
-      }
-    }.bind(this), 'userInteraction.registerProvider()')
-    return () => void dispose()
+    return this.ctx.on('user-questions/ask', (request, _next) => {
+      return provider.ask(request)
+    })
   }
 
   /**
-   * Ask the active UI provider and wait for the user's answer.
+   * Ask the composed answerers and wait for the first human answer.
    *
    * When a caller supplies an agent, human interaction is valid only for the
    * exact live runtime root. Runtime ownership, not durable session lineage,
@@ -87,7 +101,8 @@ export class UserQuestionService extends Service {
    * @returns The answer chosen or typed by the human.
    * @throws {UserQuestionError} code `CALLER_NOT_LIVE` when a supplied
    *   agent is not the registry's exact live instance, or `DELEGATED_CALLER`
-   *   when that live agent is owned by another agent.
+   *   when that live agent is owned by another agent, or `NO_ANSWERER` when
+   *   no answerer is composed (fail closed).
    */
   async ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer> {
     if (request.signal?.aborted) {
@@ -133,10 +148,37 @@ export class UserQuestionService extends Service {
           'BAD_INTENT')
       }
     }
-    if (this.provider === undefined) {
-      throw new UserQuestionError('no user-questions provider is registered', 'NO_PROVIDER')
-    }
-    return this.provider.ask(request)
+    const answer: Promise<AskUserQuestionAnswer> = Promise.resolve().then(
+      () => this.ctx.waterfall(
+        scopeTarget(this, request.agent), 'user-questions/ask', request,
+        () => Promise.reject(new UserQuestionError('no user-questions answerer is composed', 'NO_ANSWERER')),
+      ),
+    ).then(
+      result => result,
+      // A throwing answerer must fail the QUESTION closed, not the caller's
+      // tool call open — the seam contains its callbacks.
+      () => {
+        throw new UserQuestionError('no user-questions answerer answered', 'NO_ANSWERER')
+      },
+    )
+    const signal = request.signal
+    if (signal === undefined) return answer
+    return await new Promise<AskUserQuestionAnswer>((resolve, reject) => {
+      const onAbort = (): void => {
+        signal.removeEventListener('abort', onAbort)
+        reject(new UserQuestionError('ask_user_question was aborted before the user answered', 'ASK_ABORTED'))
+      }
+      signal.addEventListener('abort', onAbort, { once: true })
+      void answer.then((result) => {
+        signal.removeEventListener('abort', onAbort)
+        // After an abort won the race this resolve is a settled-promise no-op:
+        // the late answer is discarded by construction.
+        resolve(result)
+      }, (error) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(error)
+      })
+    })
   }
 }
 
