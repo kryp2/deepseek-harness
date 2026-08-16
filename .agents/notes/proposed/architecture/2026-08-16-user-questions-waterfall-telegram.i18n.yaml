@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-16-user-questions-waterfall-telegram.md
+2026-08-16-user-questions-waterfall-telegram.md: f9ae03f32acadcf9c39562c05fc88dd5487c53c8
+2026-08-16-user-questions-waterfall-telegram.zh.md: bcf96020dc98f2d1cef407cc5bdf973f62ac6315
