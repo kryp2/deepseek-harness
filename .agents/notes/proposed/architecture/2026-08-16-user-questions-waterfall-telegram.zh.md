@@ -47,9 +47,20 @@ Status: proposed
 - `@deepseek-ai/dsh-scope` 作为 `user-questions` 的 peer/dev 依赖加入。
 - 下游 `NO_PROVIDER` 断言更新为 `NO_ANSWERER`。
 - 新增 `telegram-answerer` 包：一个可选用插件，注册 `ctx.on('user-questions/ask', …)`，把问题发送到 Telegram 并从回复解析答案；其 `src` 已实现 100% 语句/分支/函数/行覆盖。
+- `doc-sync` 以 28/28 门通过：新事件作用域、类型链接、生成目录、子系统文档、双语配对与 Agent Note 格式全部符合规范。
+
+## Switch-over plan (将本 DSH 安装指向 fork)
+
+fork 的 `apps/cli` 是已发布 `@deepseek-ai/dsh` 包的来源（bin `dsh -> lib/bin.js`），而本变更完全位于 `packages/`，因此切换只替换启动器，不替换任何归 home 作用域的状态（`~/.dsh` 的 profiles、presets、sessions、credentials 均原样复用）。
+
+Route A（源码启动，无需发布）：`cd <fork> && npx --yes pnpm@9 dsh --profile web "task"`。
+
+Route B（构建产物启动）：`cd <fork> && npx --yes pnpm@9 run build && node apps/cli/lib/bin.js --profile web`。
+
+两条路线都不会改动已发布的 npm 安装，因此回滚就是重新调用先前的启动器。要启用 Telegram 回答者，向宿主补丁层或 `peck` 预设加入一个可选用行（`@deepseek-ai/dsh-telegram-answerer`）；在 `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` 存在之前它退化为空操作（转交给 Web 回答者）。验证方式：`ask_user_question` 仍在 Web GUI 中回答，且挂载该行后它也会发到 Telegram，在那里回复按先答者胜解决该问题。物理重启是人工拥有的行为 —— agent 不得自主重启运行中的安装。
 
 仍待完成：
 
 1. **无密钥快照**：telegram 回答者不可行——它需要真实的 Telegram 机器人与凭据，因此桩化传输的真实服务测试即为其覆盖（Web 回答者自身的真实组合路径已由 `api-proxy-question.spec.ts` 证明）。
-2. **完整门运行**：对整个 workspace 执行 `pnpm run test:coverage` 与 `pnpm run hygiene`（目录门因预先存在的生成产物陈旧而失败，与本变更无关）。
-3. **切换**：把本 DSH 安装指向 fork（构建 fork 并加载其 `apps/cli` bundle 以替代 npm `@deepseek-ai/dsh@0.1.0-rc.6`），然后把 Telegram 回答者行重新加入宿主/预设组合。
+2. **CI 拥有的穷举运行**：对整个 workspace 执行 `pnpm run test:coverage` 与 `pnpm run hygiene`（单元覆盖与文档门已在本地通过）。
+3. **物理切换**：执行上面的 Route A 或 B（人工拥有的重启）。

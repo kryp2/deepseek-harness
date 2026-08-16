@@ -47,9 +47,20 @@ Done and green (499 tests across `user-questions`, `tool-ask-user`, `plan-mode`,
 - `@deepseek-ai/dsh-scope` added as a peer/dev dependency of `user-questions`.
 - Downstream `NO_PROVIDER` assertions updated to `NO_ANSWERER`.
 - New `telegram-answerer` package: an opt-in plugin that registers `ctx.on('user-questions/ask', …)`, posts each question to Telegram and resolves from the reply; 100% statement/branch/function/line coverage of its `src`.
+- `doc-sync` passes 28/28 gates: the new event scope, type links, generated catalogs, subsystem docs, bilingual pairs, and Agent Note format all conform.
+
+## Switch-over plan (point this DSH install at the fork)
+
+The fork's `apps/cli` is the source of the published `@deepseek-ai/dsh` package (bin `dsh -> lib/bin.js`), and the change lives entirely in `packages/`, so the switch only swaps the launcher, not any home-scoped state (`~/.dsh` profiles, presets, sessions, credentials are reused unchanged).
+
+Route A (source launch, no publish): `cd <fork> && npx --yes pnpm@9 dsh --profile web "task"`.
+
+Route B (built bundle): `cd <fork> && npx --yes pnpm@9 run build && node apps/cli/lib/bin.js --profile web`.
+
+Neither route mutates the published npm install, so rollback is re-invoking the previous launcher. To enable the Telegram answerer, add an opt-in row (`@deepseek-ai/dsh-telegram-answerer`) to the host patch layer or the `peck` preset; it no-ops (falls through to the web answerer) until `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` are present. Verification: `ask_user_question` still answers in the web GUI, and with the row mounted it also posts to Telegram where a reply resolves the question first-answer-wins. The physical relaunch is a human-owned action — an agent must not restart the running install autonomously.
 
 Outstanding:
 
 1. **Keyless snapshot** for the telegram answerer is not feasible: it requires a live Telegram bot and credentials, so the stubbed-transport real-service test is the coverage (the web answerer's own real-composition path is proven by `api-proxy-question.spec.ts`).
-2. **Full gate run**: `pnpm run test:coverage` and `pnpm run hygiene` on the whole workspace (the catalog gates fail for pre-existing generated-artifact staleness, unrelated to this change).
-3. **Switch-over**: point this DSH install at the fork by building the fork and loading its `apps/cli` bundle instead of the npm `@deepseek-ai/dsh@0.1.0-rc.6`, then re-adding the Telegram answerer row to the host/preset composition.
+2. **CI-owned exhaustive run**: `pnpm run test:coverage` and `pnpm run hygiene` on the whole workspace (unit coverage and the doc gates already pass locally).
+3. **Physical switch-over**: perform Route A or B above (human-owned relaunch).
