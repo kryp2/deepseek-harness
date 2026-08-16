@@ -50,10 +50,10 @@ Status: proposed
 - `dsh-host-apiproxy` 将其 Web GUI 回答者注册为 `ctx.on('user-questions/ask', …)`，不再注入 `userQuestions`。
 - `@deepseek-ai/dsh-scope` 作为 `user-questions` 的 peer/dev 依赖加入。
 - 下游 `NO_PROVIDER` 断言更新为 `NO_ANSWERER`。
-- 新增 `telegram-answerer` 包：一个可选用插件，注册 `ctx.on('user-questions/ask', …)`，把问题发送到 Telegram 并从回复解析答案；纯辅助函数已通过单元测试，包已接入 host 聚合与各文档门。
+- 新增 `telegram-answerer` 包：一个可选用插件，注册 `ctx.on('user-questions/ask', …)`，把问题发送到 Telegram 并从回复解析答案；纯辅助函数已通过单元测试，包已接入 host 聚合与各文档门，其 `src` 已实现 100% 语句/分支/函数/行覆盖。
 
 仍待完成：
 
-1. **真实组合测试 + 无密钥快照**，证明 Web 回答者仍回答 `ask_user_question`，且第二个回答者（Telegram）也能回答。
-2. **完整门运行**：`pnpm run typecheck`、`pnpm run test:coverage`、`pnpm run build`、`pnpm run doc-sync`、`pnpm run hygiene` 对整个 workspace 执行。
+1. **无密钥快照**：telegram 回答者不可行——它需要真实的 Telegram 机器人与凭据，因此桩化传输的真实服务测试即为其覆盖（Web 回答者自身的真实组合路径已由 `api-proxy-question.spec.ts` 证明）。
+2. **完整门运行**：对整个 workspace 执行 `pnpm run test:coverage`、`pnpm run doc-sync`、`pnpm run hygiene`。
 3. **切换**：把本 DSH 安装指向 fork（构建 fork 并加载其 `apps/cli` bundle 以替代 npm `@deepseek-ai/dsh@0.1.0-rc.6`），然后把 Telegram 回答者行重新加入宿主/预设组合。

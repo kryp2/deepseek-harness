@@ -94,14 +94,15 @@ Done and green (459 tests across `user-questions`, `tool-ask-user`, `plan-mode`,
   and no longer injects `userQuestions`.
 - `@deepseek-ai/dsh-scope` added as a peer/dev dependency of `user-questions`.
 - Downstream `NO_PROVIDER` assertions updated to `NO_ANSWERER`.
-- New `telegram-answerer` package: an opt-in plugin that registers `ctx.on('user-questions/ask', …)`, posts each question to Telegram and resolves from the reply; pure helpers unit-tested, wired into the host aggregate and the documentation gates.
+- New `telegram-answerer` package: an opt-in plugin that registers `ctx.on('user-questions/ask', …)`, posts each question to Telegram and resolves from the reply; pure helpers unit-tested, wired into the host aggregate and the documentation gates, with 100% statement/branch/function/line coverage of its `src`.
 
 Outstanding:
 
-1. **Real-composition test + keyless snapshot** proving the web answerer still answers
-   `ask_user_question`, and that a second answerer (Telegram) can also answer.
-2. **Full gate run**: `pnpm run typecheck`, `pnpm run test:coverage`, `pnpm run build`,
-   `pnpm run doc-sync`, `pnpm run hygiene` on the whole workspace.
+1. **Keyless snapshot** for the telegram answerer is not feasible: it requires a live
+   Telegram bot and credentials, so the stubbed-transport real-service test is the coverage
+   (the web answerer's own real-composition path is proven by `api-proxy-question.spec.ts`).
+2. **Full gate run**: `pnpm run test:coverage`, `pnpm run doc-sync`, `pnpm run hygiene` on
+   the whole workspace.
 3. **Switch-over**: point this DSH install at the fork by building the fork and loading its
    `apps/cli` bundle instead of the npm `@deepseek-ai/dsh@0.1.0-rc.6`, then re-adding the
    Telegram answerer row and the mirror behavior to the host/preset composition.
