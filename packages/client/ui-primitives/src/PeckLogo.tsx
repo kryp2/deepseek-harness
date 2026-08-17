@@ -1,26 +1,25 @@
-// Peck Harness brand wordmark: the peck bird + "Peck Harness" in one svg. Ink
-// currentColor; the bird matches the favicon so the mark reads identically at
-// every size.
+// Peck bird mark (the peck.to logo, shared with the app favicon). Native 24x24,
+// drawn in 24x24 viewBox; color rides currentColor so the mark inks the same as
+// adjacent wordmark text.
 
 import type { IconProps } from './icons/props.ts'
 
 /**
- * Render the full brand wordmark.
- * @param props.size - height in px (default 24; width keeps the mark's fixed ratio).
+ * Render the peck bird mark.
+ * @param props.size - width/height in px (default 24; the mark is square).
  * @param props.className - extra class for layout placement.
- * @returns the wordmark svg (aria-hidden decorative brand art).
+ * @returns the logo svg (aria-hidden decorative brand art).
  */
-export function BrandWordmark({ size = 24, className }: IconProps) {
+export function PeckLogo({ size = 24, className }: IconProps) {
   return (
     <svg
-      width={(size * 160) / 24}
+      width={size}
       height={size}
       className={className}
-      viewBox="0 0 160 24"
+      viewBox="0 0 24 24"
       fill="none"
       aria-hidden="true"
     >
-      {/* Bird (shared with favicon.svg), drawn in a 24x24 cell. */}
       <g stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="15" cy="6" r="2.5" />
         <circle cx="15.8" cy="5.5" r="0.5" fill="currentColor" stroke="none" />
@@ -34,18 +33,6 @@ export function BrandWordmark({ size = 24, className }: IconProps) {
         <path d="M9 21 L10.5 21 L12 21" />
         <path d="M12 21 L13.5 21 L15 21" />
       </g>
-      {/* "Peck Harness" wordmark; a text node keeps the mark crisp and
-          theme-adaptive while staying on currentColor. */}
-      <text
-        x="27"
-        y="17"
-        fill="currentColor"
-        fontSize="16"
-        fontWeight="600"
-        fontFamily="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-      >
-        Peck Harness
-      </text>
     </svg>
   )
 }
