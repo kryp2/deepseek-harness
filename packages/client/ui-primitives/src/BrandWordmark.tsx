@@ -1,4 +1,4 @@
-// Peck Harness brand wordmark: the peck bird + "Peck" in one svg. Ink rides
+// Peck Harness brand wordmark: the peck bird + "Peck Harness" in one svg. Ink
 // currentColor; the bird matches the favicon so the mark reads identically at
 // every size.
 
@@ -13,10 +13,10 @@ import type { IconProps } from './icons/props.ts'
 export function BrandWordmark({ size = 24, className }: IconProps) {
   return (
     <svg
-      width={(size * 72) / 24}
+      width={(size * 116) / 24}
       height={size}
       className={className}
-      viewBox="0 0 72 24"
+      viewBox="0 0 116 24"
       fill="none"
       aria-hidden="true"
     >
@@ -34,8 +34,8 @@ export function BrandWordmark({ size = 24, className }: IconProps) {
         <path d="M9 21 L10.5 21 L12 21" />
         <path d="M12 21 L13.5 21 L15 21" />
       </g>
-      {/* "Peck" wordmark; a text node keeps the mark crisp and theme-adaptive
-          while staying on currentColor. */}
+      {/* "Peck Harness" wordmark; a text node keeps the mark crisp and
+          theme-adaptive while staying on currentColor. */}
       <text
         x="27"
         y="17"
@@ -44,7 +44,7 @@ export function BrandWordmark({ size = 24, className }: IconProps) {
         fontWeight="600"
         fontFamily="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
       >
-        Peck
+        Peck Harness
       </text>
     </svg>
   )
