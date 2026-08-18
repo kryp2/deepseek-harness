@@ -14,6 +14,8 @@ A second surface, beside the workspace picker on the new-session screen. It sits
 
 The chip opens on the deployment default and its pick is *staged* — the screen precedes the session it would apply to. The stage reaches a session when one becomes current and is still blank, which covers both the session the workspace connect created and the blank one it reused; riding along on `sessions.create` would miss the second. It is spent on first use, so the next new session opens on the default again, exactly like the workspace picker beside it.
 
+The stage waits at most two minutes. It exists to bridge the pick and the session the flow right after it produces, and a stage still waiting after that flow is gone would otherwise spend itself on whatever blank session happens to become current — leftovers staged in other tabs doing exactly that fired a storm of preset switches at one session, each overwriting the pick the user actually made. An expired stage drops back to the deployment default. List churn while a select is in flight never mints a second call for the same pick either.
+
 A session that has started is refused rather than queued: the host answers `agent-preset-locked`, and the stage is dropped instead of waiting for a session that will never accept it.
 
 ## The session-header label

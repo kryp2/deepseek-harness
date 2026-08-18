@@ -17,6 +17,17 @@ import {
 import { messageOf, presetOptions } from './settings-store.ts'
 import type { AgentPresetOption } from './settings-store.ts'
 
+/**
+ * How long a staged pick keeps waiting for the session its flow produces.
+ *
+ * A stage bridges a pick and the session a workspace connect or a creator
+ * start mints right after it — seconds, not minutes. Once this window closes
+ * the flow is gone, and spending the leftover on whatever blank session later
+ * becomes current switches sessions nobody is choosing for; a browser full of
+ * such leftovers fires them all when any one of them lands.
+ */
+const STAGE_MAX_AGE_MS = 120_000
+
 /** Hero-chip snapshot. */
 export interface AgentPresetSeatState {
   /** Presets the deployment supplies; empty means the chip renders nothing. */
@@ -59,8 +70,11 @@ export class AgentPresetSeatController {
    */
   private fallback = ''
 
-  /** Set while a pick is waiting for a session; cleared once applied. */
-  private staged: string | undefined
+  /**
+   * The pick waiting for a session, and when it was staged. One value so the
+   * id and its age cannot drift; cleared once applied, dropped, or expired.
+   */
+  private stagedPick: { readonly id: string; readonly at: number } | undefined
 
   constructor(
     private readonly api: Pick<IApiClient, 'agentPresets'>,
@@ -99,7 +113,7 @@ export class AgentPresetSeatController {
         // an applied stage was consumed — the chip mounts (and loads) only
         // once the flow's session is current, so the reply can arrive after
         // apply() already composed it.
-        current: this.staged ?? this.currentSession()?.agentPreset ?? this.fallback,
+        current: this.stagedPick?.id ?? this.currentSession()?.agentPreset ?? this.fallback,
         error: null,
       })
     } catch (error) {
@@ -131,7 +145,7 @@ export class AgentPresetSeatController {
    * chip should announce itself on the session it lands on.
    */
   stage(id: string, introduce = false): void {
-    this.staged = id
+    this.stagedPick = { id, at: Date.now() }
     this.set({ current: id, error: null, introduce })
   }
 
@@ -149,19 +163,30 @@ export class AgentPresetSeatController {
    * @returns once the switch settled, or immediately when there is nothing to do.
    */
   async apply(): Promise<void> {
-    const staged = this.staged
+    // A list change while a select is in flight re-enters here; the in-flight
+    // call already carries the pick, and a second wire call would only race it.
+    if (this.store.getSnapshot().busy) return
+    const stagedPick = this.stagedPick
+    if (stagedPick === undefined) return
+    // A stage that outlived its flow's window is a pick nobody is about to
+    // make; drop it before it spends itself on whatever session arrives next.
+    if (Date.now() - stagedPick.at > STAGE_MAX_AGE_MS) {
+      this.stagedPick = undefined
+      this.set({ current: this.fallback })
+      return
+    }
     const session = this.currentSession()
-    if (staged === undefined || session === undefined) return
+    if (session === undefined) return
     // A started session's history was produced under its own composition; the
     // host refuses the swap, so the stage is no longer meaningful.
-    if (!session.blank || session.agentPreset === staged) {
-      this.staged = undefined
+    if (!session.blank || session.agentPreset === stagedPick.id) {
+      this.stagedPick = undefined
       return
     }
     this.set({ busy: true, error: null })
     try {
-      const response = await this.api.agentPresets.select({ sessionId: session.id, agentPreset: staged })
-      this.staged = undefined
+      const response = await this.api.agentPresets.select({ sessionId: session.id, agentPreset: stagedPick.id })
+      this.stagedPick = undefined
       if (!response.result.ok) {
         this.set({ busy: false, error: response.result.error.message, current: this.fallback })
         return
@@ -170,7 +195,7 @@ export class AgentPresetSeatController {
       this.set({ busy: false, current: response.result.value.agentPreset })
       this.onApplied?.(session.id, response.result.value.agentPreset)
     } catch (error) {
-      this.staged = undefined
+      this.stagedPick = undefined
       this.set({ busy: false, error: messageOf(error), current: this.fallback })
     }
   }

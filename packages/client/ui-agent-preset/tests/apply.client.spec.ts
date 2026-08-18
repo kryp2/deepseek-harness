@@ -69,7 +69,7 @@ const ROSTER_MOVED = {
   },
 }
 
-async function bench() {
+async function bench(options?: { deferSelect?: boolean }) {
   const ctx = new Context()
   // The host's answer, mutable so a spec can move the default the way the
   // settings surface does and watch who re-reads it.
@@ -82,6 +82,7 @@ async function bench() {
   // same `$dispatch` handoff the connection sink makes.
   new TestRemote(ctx)
   const calls: string[] = []
+  let settleSelect: (() => void) | undefined
   ctx.provide('connection', {
     api: {
       agentPresets: {
@@ -104,7 +105,13 @@ async function bench() {
         remove: () => Promise.resolve({ rpcId: 'r', result: { ok: true as const, value: {} } }),
         select: (payload: { agentPreset: string }) => {
           calls.push(`select:${payload.agentPreset}`)
-          return Promise.resolve({ rpcId: 'r', result: { ok: true as const, value: { agentPreset: payload.agentPreset } } })
+          const response = { rpcId: 'r', result: { ok: true as const, value: { agentPreset: payload.agentPreset } } }
+          // A deferred answer holds the pick in flight, so a spec can move the
+          // list underneath it and count what the churn mints.
+          if (options?.deferSelect === true) {
+            return new Promise<typeof response>((resolve) => { settleSelect = () => resolve(response) })
+          }
+          return Promise.resolve(response)
         },
       },
       settings: {
@@ -117,7 +124,13 @@ async function bench() {
       },
     },
   } as never)
-  return { ctx, slots: ctx.get('slots') as SlotRegistry, calls, moveDefault }
+  return {
+    ctx,
+    slots: ctx.get('slots') as SlotRegistry,
+    calls,
+    moveDefault,
+    settleSelect: (): void => { settleSelect?.() },
+  }
 }
 
 function declareRoot(slots: SlotRegistry): () => void {
@@ -479,6 +492,83 @@ describe('ui-agent-preset apply', () => {
     // switching sessions the user never picked for.
     await Promise.resolve()
     expect(calls.filter(call => call === 'select:minimal')).toHaveLength(spent)
+  })
+
+  it('does not duplicate a select while one is in flight', async () => {
+    const { ctx, slots, calls, settleSelect } = await bench({ deferSelect: true })
+    declareRoot(slots)
+    declareConversation(slots)
+    ctx.provide('conversation', {} as never)
+    const state = {
+      current: 's1',
+      byId: { s1: { id: 's1', blank: true, agentPreset: 'standard' } },
+    }
+    const sessions = sessionsDouble(state)
+    ctx.provide('sessions', sessions as never)
+    ctx.provide('workspaces', workspacesDouble() as never)
+    await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
+    const chip = (slots.entries('conversation.hero.agentPreset')[0]!
+      .inject as unknown as () => AgentPresetSeatInjected)()
+
+    await chip.load()
+    void chip.select('minimal')
+
+    // The pick is in flight; list churn in the meantime must not mint a
+    // second wire call racing the first.
+    sessions.notify()
+    sessions.notify()
+    await Promise.resolve()
+    expect(calls.filter(call => call === 'select:minimal')).toHaveLength(1)
+
+    settleSelect()
+    await vi.waitFor(() => {
+      expect(chip.hooks.agentPresetSeat.getSnapshot().current).toBe('minimal')
+    })
+  })
+
+  it('drops a stage that outlives the staging window', async () => {
+    vi.useFakeTimers()
+    try {
+      const { ctx, slots, calls } = await bench()
+      declareRoot(slots)
+      declareConversation(slots)
+      ctx.provide('conversation', {} as never)
+      const state: {
+        current?: string
+        byId: Record<string, { id: string; blank: boolean; agentPreset?: string }>
+      } = { byId: {} }
+      const sessions = sessionsDouble(state)
+      ctx.provide('sessions', sessions as never)
+      ctx.provide('workspaces', workspacesDouble() as never)
+      await ctx.plugin({ inject: [...inject, 'conversation', 'sessions', 'workspaces'], apply }).await()
+      const chip = (slots.entries('conversation.hero.agentPreset')[0]!
+        .inject as unknown as () => AgentPresetSeatInjected)()
+
+      await chip.load()
+      // Picked where no session exists yet; a late roster load keeps showing
+      // the pending pick rather than regressing to the default.
+      await chip.select('minimal')
+      expect(calls).not.toContain('select:minimal')
+      await chip.load()
+      expect(chip.hooks.agentPresetSeat.getSnapshot().current).toBe('minimal')
+
+      // The flow that would mint the session never completes, and the window
+      // a stage waits within closes.
+      vi.advanceTimersByTime(2 * 60_000 + 1)
+
+      state.current = 's1'
+      state.byId['s1'] = { id: 's1', blank: true, agentPreset: 'standard' }
+      sessions.notify()
+      await Promise.resolve()
+      await Promise.resolve()
+
+      // A blank session arriving long after the pick must not inherit it; the
+      // chip falls back to the deployment default it opens on.
+      expect(calls).not.toContain('select:minimal')
+      expect(chip.hooks.agentPresetSeat.getSnapshot().current).toBe('standard')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('gives the header label the same roster the General row reads', async () => {
