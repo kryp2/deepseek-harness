@@ -45,6 +45,7 @@ declare module '@deepseek-ai/cordis' {
 /** Registry and cross-page router behind the two model-facing inspect tools. */
 export class CordisInspectRegistryService extends Service {
   private readonly providers = new Map<string, HostCordisInspectProviderRegistration>()
+  private readonly refs = new Map<string, number>()
   private readonly pending = new Map<CordisInspectRequestId, PendingClientQuery>()
   private clientManifest: readonly CordisInspectProviderManifest[] | undefined
   private nextRequest = 1
@@ -56,16 +57,39 @@ export class CordisInspectRegistryService extends Service {
 
   /**
    * Register one Host provider.
+   *
+   * Idempotent per manifest id: `tool-cordis` registers the same first-party
+   * providers (`Service`, `Event`, `Builtin`, `Tool`) from every coding preset
+   * in which it is mounted (the shipped `cordis` preset and the forks that copy
+   * it), and the registry is process-global. The first mount owns the entry;
+   * each later mount of an identical id takes a reference and a disposer that
+   * only evicts the shared entry when its last holder disposes, so mounting a
+   * second preset no longer fails session creation with "already registered".
    * @param registration - manifest and local query handler.
-   * @returns idempotent disposer.
+   * @returns disposer releasing this mount's reference to the provider.
    */
   register(registration: HostCordisInspectProviderRegistration): () => void {
     const manifest = validateManifest(registration.manifest)
-    if (this.providers.has(manifest.id)) throw new Error(`Host Cordis inspect provider "${manifest.id}" is already registered`)
+    const held = this.refs.get(manifest.id) ?? 0
+    if (held > 0) {
+      this.refs.set(manifest.id, held + 1)
+      return () => this.release(manifest.id)
+    }
     const stored = { ...registration, manifest }
     this.providers.set(manifest.id, stored)
-    return () => {
-      if (this.providers.get(manifest.id) === stored) this.providers.delete(manifest.id)
+    this.refs.set(manifest.id, 1)
+    return () => this.release(manifest.id)
+  }
+
+  /** Drop one reference and evict the entry when no holder remains. */
+  private release(id: string): void {
+    const held = this.refs.get(id)
+    if (held === undefined) return
+    if (held <= 1) {
+      this.refs.delete(id)
+      this.providers.delete(id)
+    } else {
+      this.refs.set(id, held - 1)
     }
   }
 
