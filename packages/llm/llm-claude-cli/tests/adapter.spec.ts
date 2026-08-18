@@ -36,9 +36,14 @@ describe('ClaudeCliAdapter: provider metadata', () => {
   it('returns a no-retry policy so the harness retry layer wraps cleanly', () => {
     const a = adapter()
     const policy = a.providerRetryPolicy('claude-cli')
+    // ResolvedRetryPolicy is `normal | always`; our adapter always returns
+    // the `normal` variant with zero retries so harness-level retry wraps
+    // the spawn transparently.
     expect(policy.mode).toBe('normal')
-    expect(policy.maxRetries).toBe(0)
-    expect(policy.retryableCodes).toEqual([])
+    if (policy.mode === 'normal') {
+      expect(policy.maxRetries).toBe(0)
+      expect(policy.retryableCodes).toEqual([])
+    }
   })
 })
 
@@ -121,7 +126,8 @@ describe('ClaudeCliAdapter: spawn failure classification', () => {
     const iterator = a.stream(opts)[Symbol.asyncIterator]()
     // We don't care whether it returns done or throws — both indicate the
     // abort path executed without leaking the child process.
-    const result = await iterator.next().catch((err: unknown) => ({ reason: String(err) }))
-    expect(result.done === true || 'reason' in result).toBe(true)
+    const result = await iterator.next().catch((err: unknown) => ({ reason: String(err) })) as { done?: boolean } | { reason: string }
+    const aborted = 'reason' in result || result.done === true
+    expect(aborted).toBe(true)
   })
 })
