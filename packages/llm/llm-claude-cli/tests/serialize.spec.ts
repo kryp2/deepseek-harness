@@ -156,3 +156,4 @@ describe('buildInvocation: stdin transcript', () => {
     expect(inv.stdin).toContain('result data')
   })
 })
+

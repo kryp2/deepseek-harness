@@ -122,3 +122,4 @@ describe('llm-claude-cli real composition', () => {
     expect(hasCli).toBe(false)
   })
 })
+

@@ -152,3 +152,4 @@ function detectToolCalls(text: string, tools: readonly ToolSchema[] | undefined)
   }
   return matches
 }
+

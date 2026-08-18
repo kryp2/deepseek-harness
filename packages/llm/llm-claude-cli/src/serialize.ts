@@ -192,3 +192,4 @@ function renderContent(blocks: readonly ContentBlock[]): string {
   }
   return parts.join('\n')
 }
+

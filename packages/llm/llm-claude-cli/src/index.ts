@@ -155,3 +155,4 @@ export function apply(ctx: Context, config: Config): void {
     `llm-claude-cli: binary=${initial.binary} models=[${initial.models.map(m => m.id).join(',')}]`,
   )
 }
+
