@@ -20,7 +20,7 @@ fork 中工作的常设规则：
 
 **工具链。** 本 checkout 的 node_modules 由 pnpm 9.15.9 构建，而 manifest 钉住 11.7.0。在运行中的 `dsh web` 服务器还在从本 checkout 提供服务时，pnpm 不得尝试清除 modules 目录；把安装对齐到 manifest 所钉版本是一次刻意的维护窗口，绝不是其他任务的副作用。
 
-**署名。** 每个变更都携带 `Agent: dsh-peck/<model>` 与相应的 `Co-authored-by` 尾注，遵循 workspace 规则。
+**署名。** 机器全局的 `prepare-commit-msg` 钩子会在每个 agent 提交上写入 `Co-authored-by: peck-harness/<model> <peck-harness+<model>@agents.peck.to>`，并清除 agent 手写的任何署名；`pre-push` 会拒绝缺少该尾注的推送。因此 agent 完全不写署名——提交信息或其他任何地方，都不写 `Co-authored-by:` 行，也不写 `Agent:` 行。此前要求手写署名的规定，正是导致整个 monorepo 出现八个不同的臆造邮箱地址的原因，其中一个被 GitHub 归并到作者本人，使 agent 从该提交中彻底消失。harness 身份是 `peck-harness/<model>`；`dsh-peck` 只是 `agent-id` 会归一化掉的别名，而 session id 永远不是模型名。
 
 **Preset。** 会话按用户设置的默认值从 Peck.to preset 组装；PTC code 模式只服务于 code-mode 工作。可能在会话进行中重组会话的阶段风暴已被修复；新会话以其创建者所选的 preset 启动。
 

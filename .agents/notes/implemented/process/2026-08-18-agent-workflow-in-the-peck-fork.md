@@ -20,7 +20,7 @@ Standing order for work in the fork:
 
 **Toolchain.** The checkout's node_modules was built by pnpm 9.15.9 while the manifest pins 11.7.0. Pnpm runs must not attempt a modules-directory purge while the live `dsh web` server serves from this checkout; bringing the install to the manifest pin is a deliberate maintenance window, never a side effect of another task.
 
-**Attribution.** Every change carries `Agent: dsh-peck/<model>` and the matching `Co-authored-by` trailer, per the workspace rule.
+**Attribution.** The machine-global `prepare-commit-msg` hook stamps `Co-authored-by: peck-harness/<model> <peck-harness+<model>@agents.peck.to>` on every agent commit, strips any attribution an agent wrote by hand, and `pre-push` refuses a push that lacks it. An agent therefore writes no attribution at all — no `Co-authored-by:` line, no `Agent:` line, in a commit message or anywhere else. The earlier instruction to carry them by hand is what produced eight different invented addresses across the monorepo, one of which GitHub folded into the author so the agent vanished from the commit. The harness identity is `peck-harness/<model>`; `dsh-peck` is an alias that `agent-id` normalises away, and a session id is never a model name.
 
 **Presets.** Sessions compose from the Peck.to preset by user-settings default; PTC code mode serves code-mode work only. The stage storm that could recompose a session mid-flight is fixed; a new session starts on the preset its creator chose.
 
