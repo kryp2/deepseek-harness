@@ -13,9 +13,9 @@ How this harness executes the [distribution and metered routing plan](.agents/no
 ## B. How the harness is used (execution model)
 
 - One master session (Peck.to preset) orchestrates; fan-out through the DSH `workflow` tool with per-agent `model` overrides, plus `subagent`/`subagent_fork` for single delegations (depth cap 3).
-- One work item = ONE repository, one base commit, allowed paths, forbidden shared paths, one unique worktree, one stable agent identity (`dsh-peck/<model>`).
+- One work item = ONE repository, one base commit, allowed paths, forbidden shared paths, one unique worktree, one stable agent identity (`peck-harness/<model>`).
 - Leaf agents return source changes + generation instructions; the integration owner alone updates shared artifacts (lockfiles, generated catalogs, bundle composition, schema hashes, final snapshots).
-- Every change carries `Agent: dsh-peck/<model>` + `Co-authored-by`; PRs touching production, infra, secrets, or smart contracts are `[HOLD]` for Thomas.
+- Attribution is written by the machine-global `prepare-commit-msg` hook, never by an agent: no hand-written `Co-authored-by:` line and no `Agent:` line, anywhere. `pre-push` refuses a push whose agent commits lack the trailer. PRs touching production, infra, secrets, or smart contracts are `[HOLD]` for Thomas.
 - Fork mechanics: no PRs exist (fork + upstream both closed to PRs) — changes land as branches, owner-merge to trunk after checks ([standing order](.agents/notes/implemented/process/2026-08-18-agent-workflow-in-the-peck-fork.md), untracked until committed).
 
 ## C. Work order (from the codex plan)

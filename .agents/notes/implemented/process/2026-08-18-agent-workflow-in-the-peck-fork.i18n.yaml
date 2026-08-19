@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-18-agent-workflow-in-the-peck-fork.md
-2026-08-18-agent-workflow-in-the-peck-fork.md: 8b0107ea05da70367e44f67560f61673eb2b521b
-2026-08-18-agent-workflow-in-the-peck-fork.zh.md: b357b9637cb72ca3884e2f04feae21ff8aa4c227
+2026-08-18-agent-workflow-in-the-peck-fork.md: 2c0f9eae65d24696bfd5ed491746918f271d6ed7
+2026-08-18-agent-workflow-in-the-peck-fork.zh.md: c42a55eb4f0544a58fe53fdcaed38c1c4bdc3a1a
