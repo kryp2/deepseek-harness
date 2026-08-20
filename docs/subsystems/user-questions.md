@@ -145,11 +145,15 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 
 ### `ctx.userQuestions` — `UserQuestionService`
 
-`ctx.userQuestions`: one active UI provider plus an `ask()` API.
+`ctx.userQuestions`: the human-answer seam. Answerers register on the `'user-questions/ask'` waterfall; `ask()` dispatches to them and returns the first answer.
 
 ```ts cordis-catalog
 /**
- * Register the UI provider. Only one provider may be active in a context.
+ * Register one answerer that collects the human answer. Retained as a shim
+ * over the {@link 'user-questions/ask'} waterfall: it registers a listener that
+ * calls the provider's `ask`. New answerers should register on the waterfall
+ * directly (`ctx.on('user-questions/ask', ...)`) so multiple channels can
+ * answer the same question and the first answer wins.
  *
  * @param provider UI-side implementation that collects answers.
  * @returns Disposer that unregisters this provider.
@@ -157,7 +161,7 @@ Generated from source by `scripts/gen-cordis-catalog.ts` (verified fresh by `pnp
 registerProvider(provider: UserQuestionProvider): () => void
 
 /**
- * Ask the active UI provider and wait for the user's answer.
+ * Ask the composed answerers and wait for the first human answer.
  *
  * When a caller supplies an agent, human interaction is valid only for the
  * exact live runtime root. Runtime ownership, not durable session lineage,
@@ -169,10 +173,38 @@ registerProvider(provider: UserQuestionProvider): () => void
  * @returns The answer chosen or typed by the human.
  * @throws {UserQuestionError} code `CALLER_NOT_LIVE` when a supplied
  *   agent is not the registry's exact live instance, or `DELEGATED_CALLER`
- *   when that live agent is owned by another agent.
+ *   when that live agent is owned by another agent, or `NO_ANSWERER` when
+ *   no answerer is composed (fail closed).
  */
 async ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>
 ```
 
-Source: [`packages/interaction/user-questions/src/index.ts:51`](../../packages/interaction/user-questions/src/index.ts)
+Source: [`packages/interaction/user-questions/src/index.ts:70`](../../packages/interaction/user-questions/src/index.ts)
+
+<a id="user-questions-events"></a>
+
+### `user-questions/*` events
+
+<a id="user-questionsask--waterfall"></a>
+
+#### `user-questions/ask` — waterfall
+
+Ask composed answerers for one human answer. Return an answer to claim the question or call `next()`; the end of the chain is the fail-closed default (the caller observes a `UserQuestionError` code `NO_ANSWERER`). Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners receive only that agent's questions.
+
+```ts cordis-catalog
+/**
+ * Ask composed answerers for one human answer. Return an answer to claim the
+ * question or call `next()`; the end of the chain is the fail-closed default
+ * (the caller observes a `UserQuestionError` code `NO_ANSWERER`).
+ * Scope-filtered dispatch (`@deepseek-ai/dsh-scope`): agent-scoped listeners
+ * receive only that agent's questions.
+ * @param req - the pending question set (questions, owner agent, signal).
+ * @mode waterfall
+ */
+'user-questions/ask'(this: Scoped<UserQuestionService>, req: AskUserQuestionRequest, next: () => Promise<AskUserQuestionAnswer>): Promise<AskUserQuestionAnswer>
+```
+
+Types: [Scoped](scope.md)
+
+Source: [`packages/interaction/user-questions/src/index.ts:31`](../../packages/interaction/user-questions/src/index.ts)
 <!-- END GENERATED cordis-surface -->

@@ -181,6 +181,7 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'system-prompt': 'system-prompt.md',
   'session-telemetry': 'session-telemetry.md',
   'tools': 'tools.md',
+  'user-questions': 'user-questions.md',
   'workflow': 'workflow.md',
 }
 
@@ -451,6 +452,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   AskUserQuestionAnswer: 'user-questions.md',
   AskUserQuestionRequest: 'user-questions.md',
   UserQuestionProvider: 'user-questions.md',
+  UserQuestionService: 'user-questions.md',
   WebFetchProvider: 'web.md',
   WebFetchRequest: 'web.md',
   WebFetchResult: 'web.md',

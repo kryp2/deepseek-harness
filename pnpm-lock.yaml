@@ -5020,6 +5020,24 @@ importers:
         specifier: workspace:^
         version: link:../user-approval
 
+  packages/interaction/telegram-answerer:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-credentials':
+        specifier: workspace:^
+        version: link:../../credentials/credentials
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-shell':
+        specifier: workspace:^
+        version: link:../../shell/shell
+      '@deepseek-ai/dsh-user-questions':
+        specifier: workspace:^
+        version: link:../user-questions
+
   packages/interaction/tool-ask-user:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -5089,6 +5107,9 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:^
         version: link:../../llm/llm
+      '@deepseek-ai/dsh-scope':
+        specifier: workspace:^
+        version: link:../../core/scope
 
   packages/jobs/jobs:
     devDependencies:

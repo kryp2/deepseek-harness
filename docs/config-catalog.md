@@ -725,7 +725,7 @@ Source: [`packages/hooks/hooks-codex/src/index.ts:44`](../packages/hooks/hooks-c
 
 ## `@deepseek-ai/dsh-host-apiproxy`
 
-Requires: `agentDefaultModel` · `agents` · `attachments` · `directoryPicker` · `llm` · `sessions` · `subagents` · `sessionQuery` · `tools` · `userQuestions` · `workspaceRegistry`
+Requires: `agentDefaultModel` · `agents` · `attachments` · `directoryPicker` · `llm` · `sessions` · `subagents` · `sessionQuery` · `tools` · `workspaceRegistry`
 
 ```ts config-catalog
 /** Gateway plugin configuration. */
@@ -2243,6 +2243,20 @@ export interface Config {
 ```
 
 Source: [`packages/core/system-prompt/src/index.ts:186`](../packages/core/system-prompt/src/index.ts)
+
+<a id="deepseek-aidsh-telegram-answerer"></a>
+
+## `@deepseek-ai/dsh-telegram-answerer`
+
+```ts config-catalog
+/** Plugin config. All optional — `static Config` supplies the defaults. */
+export interface Config {
+  /** Answer timeout in milliseconds; the ask is withdrawn (falls through) when exceeded. */
+  timeoutMs?: number
+}
+```
+
+Source: [`packages/interaction/telegram-answerer/src/index.ts:53`](../packages/interaction/telegram-answerer/src/index.ts)
 
 <a id="deepseek-aidsh-terminal-bash"></a>
 

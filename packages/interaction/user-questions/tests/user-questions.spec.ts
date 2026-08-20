@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
 import UserQuestionService, {
-  UserQuestionError,
   type AskUserQuestionRequest,
   type UserQuestionProvider,
 } from '@deepseek-ai/dsh-user-questions'
@@ -39,12 +38,12 @@ describe('UserQuestionService', () => {
     expect(p.seen).toEqual([{ questions: [{ id: 'confirm', question: 'Proceed?' }] }])
   })
 
-  it('rejects ask requests when no provider is registered', async () => {
+  it('rejects ask requests when no answerer is composed', async () => {
     const ctx = new Context()
     await ctx.plugin(UserQuestionService)
 
     await expect(ctx.userQuestions.ask({ questions: [{ id: 'confirm', question: 'Proceed?' }] }))
-      .rejects.toMatchObject({ name: 'UserQuestionError', code: 'NO_PROVIDER' })
+      .rejects.toMatchObject({ name: 'UserQuestionError', code: 'NO_ANSWERER' })
   })
 
   it('registers providers with HMR-safe disposal', async () => {
@@ -57,16 +56,19 @@ describe('UserQuestionService', () => {
     dispose()
 
     await expect(ctx.userQuestions.ask({ questions: [{ id: 'confirm', question: 'Proceed?' }] }))
-      .rejects.toMatchObject({ code: 'NO_PROVIDER' })
+      .rejects.toMatchObject({ code: 'NO_ANSWERER' })
   })
 
-  it('rejects duplicate providers instead of replacing the active UI', async () => {
+  it('answers from the first provider that claims the question', async () => {
     const ctx = new Context()
     await ctx.plugin(UserQuestionService)
+    // Two answerers now coexist on the waterfall; the first to answer wins.
     ctx.userQuestions.registerProvider(provider('first'))
+    ctx.userQuestions.registerProvider(provider('second'))
 
-    expect(() => ctx.userQuestions.registerProvider(provider('second')))
-      .toThrow(UserQuestionError)
+    const result = await ctx.userQuestions.ask({ questions: [{ id: 'confirm', question: 'Proceed?' }] })
+
+    expect(result).toEqual({ answers: [{ id: 'confirm', selected: ['first'] }] })
   })
 
   it('fails before reaching the provider when the signal is already aborted', async () => {
