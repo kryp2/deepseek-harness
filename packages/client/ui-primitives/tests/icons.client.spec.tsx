@@ -66,3 +66,16 @@ describe('FishLogo', () => {
     expect(container.innerHTML).not.toContain('M0 0L23.16')
   })
 })
+
+describe('PeckLogo', () => {
+  it('renders the square bird mark in currentColor with no hardcoded palette', () => {
+    const { container } = render(<primitives.PeckLogo />)
+    const svg = container.querySelector('svg')!
+    expect(svg.getAttribute('width')).toBe('24')
+    expect(svg.getAttribute('height')).toBe('24')
+    expect(svg.getAttribute('viewBox')).toBe('0 0 24 24')
+    expect(container.querySelectorAll('circle')).toHaveLength(2)
+    expect(container.innerHTML).toContain('currentColor')
+    expect(container.innerHTML).not.toMatch(/#[0-9a-fA-F]{3,8}"/)
+  })
+})
