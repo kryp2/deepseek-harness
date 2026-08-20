@@ -21,8 +21,16 @@ Registry and cross-page router behind the two model-facing inspect tools.
 ```ts cordis-catalog
 /**
  * Register one Host provider.
+ *
+ * Idempotent per manifest id: `tool-cordis` registers the same first-party
+ * providers (`Service`, `Event`, `Builtin`, `Tool`) from every coding preset
+ * in which it is mounted (the shipped `cordis` preset and the forks that copy
+ * it), and the registry is process-global. The first mount owns the entry;
+ * each later mount of an identical id takes a reference and a disposer that
+ * only evicts the shared entry when its last holder disposes, so mounting a
+ * second preset no longer fails session creation with "already registered".
  * @param registration - manifest and local query handler.
- * @returns idempotent disposer.
+ * @returns disposer releasing this mount's reference to the provider.
  */
 register(registration: HostCordisInspectProviderRegistration): () => void
 
