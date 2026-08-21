@@ -1,0 +1,60 @@
+{
+  "description": "Cross-language golden vectors for Peck metered inference receipts (v1). Pinned across TypeScript (deepseek-harness, peck-overlay-schema), Go (llm-gateway), and sCrypt contracts.",
+  "version": "peck/v1/inference-receipt",
+  "vectors": [
+    {
+      "name": "basic-deepseek-v4-flash-stream",
+      "description": "Standard streaming completion receipt with uncached input, output tokens, and positive satoshi charge",
+      "receipt": {
+        "version": "peck/v1/inference-receipt",
+        "requestId": "req_01j5k8m9n0pqrstuvw",
+        "channelOutpoint": "43dd688a0e88942b0f49f4857493a743b3b44b8296a23a492161dc225c28ad95:0",
+        "channelSequence": 1,
+        "routeId": "peck/deepseek-v4-flash",
+        "upstreamModelId": "deepseek-v4-flash",
+        "catalogHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "priceScheduleId": "sched_2026_08_standard",
+        "usage": {
+          "inputTokens": 150,
+          "cacheReadTokens": 0,
+          "cacheWriteTokens": 0,
+          "outputTokens": 320,
+          "reasoningTokens": 0
+        },
+        "chargeSats": 42,
+        "amountSpentNewSats": 42,
+        "responseHash": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+        "timestampMs": 1787043600000
+      },
+      "canonicalPayload": "peck/v1/inference-receipt\nrequest_id=req_01j5k8m9n0pqrstuvw\nchannel_outpoint=43dd688a0e88942b0f49f4857493a743b3b44b8296a23a492161dc225c28ad95:0\nchannel_sequence=1\nroute_id=peck/deepseek-v4-flash\nupstream_model_id=deepseek-v4-flash\ncatalog_hash=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\nprice_schedule_id=sched_2026_08_standard\ninput_tokens=150\ncache_read_tokens=0\ncache_write_tokens=0\noutput_tokens=320\nreasoning_tokens=0\ncharge_sats=42\namount_spent_new_sats=42\nresponse_hash=ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad\ntimestamp_ms=1787043600000",
+      "expectedSha256": "28cb9e36927850c6388dbaa813e922e1ee0283b60e99210631b5d0362b793059"
+    },
+    {
+      "name": "cached-reasoning-deepseek-v4-pro",
+      "description": "Complex reasoning completion with cache read tokens and reasoning tokens breakdown",
+      "receipt": {
+        "version": "peck/v1/inference-receipt",
+        "requestId": "req_01j5k9zz78aabbccdd",
+        "channelOutpoint": "43dd688a0e88942b0f49f4857493a743b3b44b8296a23a492161dc225c28ad95:0",
+        "channelSequence": 2,
+        "routeId": "peck/deepseek-v4-pro",
+        "upstreamModelId": "deepseek-v4-pro",
+        "catalogHash": "f456a2389104c278912389012389012389012389012389012389012389012389",
+        "priceScheduleId": "sched_2026_08_pro",
+        "usage": {
+          "inputTokens": 500,
+          "cacheReadTokens": 4000,
+          "cacheWriteTokens": 500,
+          "outputTokens": 1200,
+          "reasoningTokens": 800
+        },
+        "chargeSats": 185,
+        "amountSpentNewSats": 227,
+        "responseHash": "cb8379ac2098aa165029e3938a51da0bcecfc008fd6795f401178647f96c5b34",
+        "timestampMs": 1787043720000
+      },
+      "canonicalPayload": "peck/v1/inference-receipt\nrequest_id=req_01j5k9zz78aabbccdd\nchannel_outpoint=43dd688a0e88942b0f49f4857493a743b3b44b8296a23a492161dc225c28ad95:0\nchannel_sequence=2\nroute_id=peck/deepseek-v4-pro\nupstream_model_id=deepseek-v4-pro\ncatalog_hash=f456a2389104c278912389012389012389012389012389012389012389012389\nprice_schedule_id=sched_2026_08_pro\ninput_tokens=500\ncache_read_tokens=4000\ncache_write_tokens=500\noutput_tokens=1200\nreasoning_tokens=800\ncharge_sats=185\namount_spent_new_sats=227\nresponse_hash=cb8379ac2098aa165029e3938a51da0bcecfc008fd6795f401178647f96c5b34\ntimestamp_ms=1787043720000",
+      "expectedSha256": "c5b29f6d66ba46c46faad44e9afdb4d977744626b9501ed72b23e52687fe338a"
+    }
+  ]
+}

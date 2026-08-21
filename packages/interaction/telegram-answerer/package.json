@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-telegram-answerer",
   "description": "Opt-in Telegram answerer over the ctx.userQuestions waterfall: ask the human on Telegram",
-  "version": "0.1.0-rc.5",
+  "version": "0.1.0-rc.7",
   "publishConfig": {
     "access": "public"
   },

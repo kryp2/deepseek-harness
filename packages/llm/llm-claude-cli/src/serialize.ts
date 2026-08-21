@@ -36,6 +36,10 @@ export interface ClaudeCliConnectionOptions {
   models: readonly ClaudeCliCatalogModel[]
 }
 
+/**
+ * One advisory catalog model exposed to discovery consumers. The harness
+ * model id is the wire alias handed to `--model`.
+ */
 export interface ClaudeCliCatalogModel {
   /** Alias accepted by `--model` (e.g. `sonnet`, `opus`, `haiku`, or full id). */
   id: string
@@ -67,6 +71,10 @@ export interface ClaudeInvocation {
  * The serializer is the one place where DSH `GenerateOptions` becomes a CLI
  * call; every flag, every truncation, every message-tag mapping is decided
  * here so the adapter can stay a transport wrapper.
+ *
+ * @param options - The harness request: model alias, system prompt, messages, tools.
+ * @param connection - Resolved connection facts (binary, settings JSON, caps).
+ * @returns The argument vector, stdin payload, and system-truncation flag for one call.
  */
 export function buildInvocation(options: GenerateOptions, connection: ClaudeCliConnectionOptions): ClaudeInvocation {
   const model = resolveModelAlias(options.model, connection)
@@ -151,8 +159,10 @@ function serializeOne(msg: Message): string {
 
 function roleLabel(msg: Message): string {
   // `source.kind === 'model'` is assistant; everything else is user/tool-result.
-  if ('source' in msg && msg.source !== undefined) {
-    const src = msg.source as { kind?: string }
+  // The cast admits undefined: durable log data carries the key with a nullish
+  // value more often than the type admits.
+  const src = (msg as { source?: { kind?: string } }).source
+  if (src !== undefined) {
     if (src.kind === 'model') return 'assistant'
     if (src.kind === 'tool') return 'tool'
   }

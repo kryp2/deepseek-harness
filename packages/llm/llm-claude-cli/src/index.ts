@@ -93,6 +93,9 @@ export type ResolvedClaudeCliOptions = ClaudeCliConnectionOptions
  * reach this with a Config whose fields may still be `undefined`. We
  * resolve every default here — once at mount, then once per settings
  * snapshot through {@link apply}'s `onChange`.
+ *
+ * @param config - Raw plugin config; every field may be `undefined`.
+ * @returns Connection options with every default applied.
  */
 export function resolveAdapterOptions(config: Config): ResolvedClaudeCliOptions {
   const resolved: ResolvedConfig = {

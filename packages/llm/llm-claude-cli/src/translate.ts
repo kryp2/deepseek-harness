@@ -21,7 +21,8 @@ export interface ClaudeStdout {
   type: 'result'
   is_error: boolean
   result: string
-  stop_reason: 'end_turn' | 'max_tokens' | 'tool_use' | string
+  /** Claude Code stop reason; known values include `end_turn`, `max_tokens`, and `tool_use`. */
+  stop_reason: string
   total_cost_usd: number
   duration_ms: number
   session_id: string
@@ -53,6 +54,10 @@ export interface Translation {
  * Translate one Claude stdout payload into a DSH stream. The translator is
  * pure: given a payload + the tool catalog the request declared, it returns
  * a fixed set of chunks. The adapter drives `stream()` over them.
+ *
+ * @param stdout - Parsed `claude --print` JSON result document.
+ * @param tools - Tool schemas the request declared, used to recognize fenced-JSON tool calls; `undefined` when none.
+ * @returns The chunk sequence and usage/cost facts for one response.
  */
 export function translate(stdout: ClaudeStdout, tools: readonly ToolSchema[] | undefined): Translation {
   const chunks: StreamChunk[] = []
@@ -87,7 +92,9 @@ export function translate(stdout: ClaudeStdout, tools: readonly ToolSchema[] | u
     outputTokens: stdout.usage.output_tokens,
     ...stdout.usage.cache_read_input_tokens !== undefined ? { cacheReadTokens: stdout.usage.cache_read_input_tokens } : {},
     ...stdout.usage.cache_creation_input_tokens !== undefined ? { cacheWriteTokens: stdout.usage.cache_creation_input_tokens } : {},
-    ...stdout.usage.output_tokens_details?.thinking_tokens !== undefined ? { reasoningTokens: stdout.usage.output_tokens_details.thinking_tokens } : {},
+    ...stdout.usage.output_tokens_details?.thinking_tokens !== undefined
+      ? { reasoningTokens: stdout.usage.output_tokens_details.thinking_tokens }
+      : {},
   }
   chunks.push({ type: 'usage', usage })
 

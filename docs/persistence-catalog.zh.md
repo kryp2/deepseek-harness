@@ -496,6 +496,19 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
 
+### `peck/*`
+
+<a id="peckmetered-receipt--log-only"></a>
+
+#### `peck/metered-receipt` — log-only
+
+```ts persistence-catalog
+/** Emitted when a metered model response yields a verified receipt. */
+'peck/metered-receipt': SignedMeteredReceipt
+```
+
+来源：[`packages/session/session-metered-receipt/src/types.ts:82`](../packages/session/session-metered-receipt/src/types.ts)
+
 ### `permission/*`
 
 <a id="permissionpreset--log-only"></a>
