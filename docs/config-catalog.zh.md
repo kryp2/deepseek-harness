@@ -838,6 +838,51 @@ export interface Config {
 
 来源：[`packages/jobs/jobs-local/src/index.ts:31`](../packages/jobs/jobs-local/src/index.ts)
 
+<a id="deepseek-aidsh-llm-claude-cli"></a>
+
+## `@deepseek-ai/dsh-llm-claude-cli`
+
+需要：`llm`
+
+```ts config-catalog
+/**
+ * Plugin config, validated by the same-named schemastery schema and doubling
+ * as the `llm-claude-cli` settings-section shape. Every field is optional in
+ * yml: omitted binary falls back to `claude` on `$PATH`, omitted settings
+ * JSON uses the harness default (sonnet + medium), and omitted models
+ * advertises the standard sonnet/haiku/opus triplet.
+ */
+export interface Config {
+  /** Binary path; defaults to `claude`. */
+  binary?: string
+  /** JSON string passed verbatim to `--settings`. */
+  settingsJson?: string
+  /** Default per-request output cap (default 32 000). */
+  maxTokens?: number
+  /** Soft cap on `--system-prompt` length before warning + truncation. */
+  maxSystemPromptChars?: number
+  /** Advisory models exposed to discovery consumers. */
+  models?: ClaudeCliCatalogModel[]
+}
+
+/**
+ * One advisory catalog model exposed to discovery consumers. The harness
+ * model id is the wire alias handed to `--model`.
+ */
+export interface ClaudeCliCatalogModel {
+  /** Alias accepted by `--model` (e.g. `sonnet`, `opus`, `haiku`, or full id). */
+  id: string
+  /** Selector label; defaults to {@link id}. */
+  name?: string
+  /** Provider-owned context capacity when known. */
+  contextWindow?: number
+  /** Per-request output cap; falls back to the profile's {@link maxTokens}. */
+  maxTokens?: number
+}
+```
+
+来源：[`packages/llm/llm-claude-cli/src/index.ts:52`](../packages/llm/llm-claude-cli/src/index.ts)
+
 <a id="deepseek-aidsh-llm-deepseek"></a>
 
 ## `@deepseek-ai/dsh-llm-deepseek`
@@ -3093,8 +3138,10 @@ export interface Config {
 - `@deepseek-ai/dsh-session`（[`packages/core/session/src/index.ts`](../packages/core/session/src/index.ts)）
 - `@deepseek-ai/dsh-session-checkpoint-policy` — 需要 `llm` · `sessionPersistence` · `sessions` · `tools`（[`packages/session/session-checkpoint-policy/src/index.ts`](../packages/session/session-checkpoint-policy/src/index.ts)）
 - `@deepseek-ai/dsh-session-log-export` — 需要 `commands`（[`packages/session-query/session-log-export/src/index.ts`](../packages/session-query/session-log-export/src/index.ts)）
+- `@deepseek-ai/dsh-session-metered-receipt` — 需要 `sessionProjections`（[`packages/session/session-metered-receipt/src/index.ts`](../packages/session/session-metered-receipt/src/index.ts)）
 - `@deepseek-ai/dsh-session-projection`（[`packages/session/session-projection/src/index.ts`](../packages/session/session-projection/src/index.ts)）
 - `@deepseek-ai/dsh-session-stats` — 需要 `sessionProjections`（[`packages/session/session-stats/src/index.ts`](../packages/session/session-stats/src/index.ts)）
+- `@deepseek-ai/dsh-session-usage` — 需要 `sessionProjections`（[`packages/session/session-usage/src/index.ts`](../packages/session/session-usage/src/index.ts)）
 - `@deepseek-ai/dsh-skill-badge` — 需要 `skills`（[`packages/skill/skill-badge/src/index.ts`](../packages/skill/skill-badge/src/index.ts)）
 - `@deepseek-ai/dsh-storage`（[`packages/storage/storage/src/index.ts`](../packages/storage/storage/src/index.ts)）
 - `@deepseek-ai/dsh-subagent`（[`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts)）

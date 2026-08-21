@@ -23,7 +23,9 @@ import { translate, type ClaudeStdout } from './translate.ts'
 
 /** Defaults mirrored from {@link @deepseek-ai/dsh-llm-deepseek}. */
 export const DEFAULT_CONTEXT_WINDOW = 200_000
+/** Default per-request output cap forwarded nowhere; Claude Code applies its own policy. */
 export const DEFAULT_MAX_TOKENS = 32_000
+/** Default idle gap between stdout bytes after which the subprocess is considered hung. */
 export const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 300_000
 /** Settings JSON passed to `--settings`; pins the model alias + effort so a
  *  global `~/.claude/settings.json` (often `opus` + `xhigh`) does not hijack
@@ -95,13 +97,20 @@ export class ClaudeCliAdapter extends LlmAdapter {
   ): Promise<LlmResolvedModelInfo> {
     const connection = this.config.options()
     const configured = connection.models.find(m => m.id === model)
-    const contextWindow = configured?.contextWindow ?? DEFAULT_CONTEXT_WINDOW
+    if (configured === undefined) {
+      return Promise.resolve({
+        provider,
+        id: model,
+        name: model,
+        inputModalities: ['text' as const],
+        context: { contextWindow: DEFAULT_CONTEXT_WINDOW },
+        defaultMaxTokens: connection.maxTokens,
+      })
+    }
     return Promise.resolve({
-      ...configured === undefined
-        ? { provider, id: model, name: model, inputModalities: ['text' as const] }
-        : modelInfo(provider, configured),
-      context: { contextWindow },
-      defaultMaxTokens: configured?.maxTokens ?? connection.maxTokens ?? DEFAULT_MAX_TOKENS,
+      ...modelInfo(provider, configured),
+      context: { contextWindow: configured.contextWindow ?? DEFAULT_CONTEXT_WINDOW },
+      defaultMaxTokens: configured.maxTokens ?? connection.maxTokens,
     })
   }
 
@@ -150,31 +159,31 @@ export class ClaudeCliAdapter extends LlmAdapter {
     upstream.addEventListener('abort', onAbort, { once: true })
 
     const stdoutDone = new Promise<void>((resolve) => {
-      child.stdout?.setEncoding('utf8')
-      child.stdout?.on('data', (chunk: string) => {
+      child.stdout.setEncoding('utf8')
+      child.stdout.on('data', (chunk: string) => {
         stdoutBuf += chunk
         watchdog.pulse()
       })
-      child.stdout?.on('end', resolve)
-      child.stdout?.on('error', resolve)
+      child.stdout.on('end', resolve)
+      child.stdout.on('error', resolve)
     })
     const stderrDone = new Promise<void>((resolve) => {
-      child.stderr?.setEncoding('utf8')
-      child.stderr?.on('data', (chunk: string) => {
+      child.stderr.setEncoding('utf8')
+      child.stderr.on('data', (chunk: string) => {
         stderrBuf += chunk
       })
-      child.stderr?.on('end', resolve)
-      child.stderr?.on('error', resolve)
+      child.stderr.on('end', resolve)
+      child.stderr.on('error', resolve)
     })
     const exitDone = new Promise<{ code: number | null; signal: NodeJS.Signals | null }>((resolve) => {
       child.on('error', (err) => {
         spawnError = err
         resolve({ code: null, signal: null })
       })
-      child.on('exit', (code, signal) => resolve({ code, signal }))
+      child.on('exit', (code, signal) => { resolve({ code, signal }) })
     })
 
-    child.stdin?.end(invocation.stdin)
+    child.stdin.end(invocation.stdin)
 
     await Promise.all([stdoutDone, stderrDone, exitDone])
 
@@ -198,9 +207,9 @@ export class ClaudeCliAdapter extends LlmAdapter {
       )
     }
 
-    if (parsed.type !== 'result') {
+    if ((parsed as { type?: string }).type !== 'result') {
       throw new LlmError(
-        `Claude CLI returned unexpected document type "${String(parsed.type)}"`,
+        `Claude CLI returned unexpected document type "${(parsed as { type?: string }).type ?? 'missing'}"`,
         CLAUDE_CLI_ERROR_CODE,
       )
     }
@@ -229,7 +238,7 @@ function classifyJsonError(stderr: string): string {
   return CLAUDE_CLI_ERROR_CODE
 }
 
-// Expose defaults for the plugin glue in index.ts.
+/** Adapter-side defaults exposed for the plugin glue in index.ts; test hooks read the same object. */
 export const __adapterDefaults = {
   DEFAULT_CONTEXT_WINDOW,
   DEFAULT_MAX_TOKENS,

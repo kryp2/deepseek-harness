@@ -18,11 +18,19 @@ Peck 计量模型推理的跨语言收据 Schema、规范序列化与签名验�
 
 ## Model Experience
 
-- model_facing: false
-- tools: none
-- system_prompt: none
-- runtime_events: `peck/metered-receipt`
-- context_contributions: none
+### 计量收据投影
+
+#### 模型看到的内容
+
+什么都不看到。`peck/metered-receipt` 仅记录日志，从不进入会话表面、`deriveMessages()`、系统提示词、工具 schema 或请求前缀。
+
+#### Token 影响
+
+零。已验证的收据只追加到日志，不给任何模型请求增加 token；累计聪计费通过投影与 UI 呈现，不进入模型上下文。
+
+#### KV Cache 影响
+
+无。收据事件不改变任何请求的重建内容或缓存键。
 
 ## Known Limitations and Deferred Work
 

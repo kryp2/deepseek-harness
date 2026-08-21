@@ -18,11 +18,19 @@ Cross-language golden vectors are committed in `vectors/receipt-vectors.json` an
 
 ## Model Experience
 
-- model_facing: false
-- tools: none
-- system_prompt: none
-- runtime_events: `peck/metered-receipt`
-- context_contributions: none
+### Metered receipt projection
+
+#### What the model sees
+
+Nothing. `peck/metered-receipt` is log-only and never enters the session surface, `deriveMessages()`, the system prompt, tool schemas, or a request prefix.
+
+#### Token effect
+
+Zero. Verified receipts append to the log only and add no tokens to any model request; cumulative satoshi charges reach projections and UI, not model context.
+
+#### KV Cache effect
+
+None. Receipt events do not change any request's reconstructed content or cache key.
 
 ## Known Limitations and Deferred Work
 
