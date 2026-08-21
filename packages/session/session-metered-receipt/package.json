@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-session-metered-receipt",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-rc.7",
   "description": "Cross-language receipt schema, canonical serialization, and verification for Peck metered model inference",
   "private": true,
   "type": "module",
