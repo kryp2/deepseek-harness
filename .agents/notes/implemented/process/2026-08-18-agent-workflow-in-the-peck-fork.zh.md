@@ -6,7 +6,7 @@ Status: implemented
 
 ## 问题
 
-agent——无论是 harness 会话还是外部 CLI agent——都在 [分发计划](../../proposed/architecture/2026-08-18-peck-distribution-and-metered-routing.md) 之下于 `kryp2/deepseek-harness` 内部构建 Peck 分发，但 fork 的机制与仓库文档所假定的上游工作流并不相同。fork 无法承载指向自身的 pull request；本地工具链与 manifest 所钉住的 pnpm 版本已经漂移；会话中途的 preset 风暴又可能悄无声息地把一个会话重组到错误的组装之下（[过期的暂存](../bug-fix/2026-08-18-agent-preset-stage-expires.md)）。一个仅凭上游文档推断工作流的 agent，会打开根本不存在的 PR，会在运行中的 web 服务器底下触发 node_modules 清除，或者在过期的 master 上构建。
+agent——无论是 harness 会话还是外部 CLI agent——都在 [分发计划](../../proposed/architecture/2026-08-18-peck-distribution-and-metered-routing.zh.md) 之下于 `kryp2/deepseek-harness` 内部构建 Peck 分发，但 fork 的机制与仓库文档所假定的上游工作流并不相同。fork 无法承载指向自身的 pull request；本地工具链与 manifest 所钉住的 pnpm 版本已经漂移；会话中途的 preset 风暴又可能悄无声息地把一个会话重组到错误的组装之下（[过期的暂存](../bug-fix/2026-08-18-agent-preset-stage-expires.zh.md)）。一个仅凭上游文档推断工作流的 agent，会打开根本不存在的 PR，会在运行中的 web 服务器底下触发 node_modules 清除，或者在过期的 master 上构建。
 
 ## 决定
 

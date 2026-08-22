@@ -34,4 +34,4 @@ Peck Harness 允许一个 agent 会话在个人订阅、用户自有 API 密钥�
 - 归属是单一指针，因此会话中途切换路由后组装的消息会计入新路由——这与循环「配置先于请求」的顺序一致，但不是逐步托管。没有前置请求配置的消息会被跳过，而不是猜进一个合成路由。
 - 用量数值只与提供方报告一样完整：未上报用量的路由仍会累加 `calls`，但 token 为零。
 
-本单元是 [Peck 分发与计量式路由提案](../../proposed/architecture/2026-08-18-peck-distribution-and-metered-routing.md) 中「Harness 验证并展示提供方上报的用量」所指的核算基石；路由、定价与收据结算将在后续改动中构建于其上。
+本单元是 [Peck 分发与计量式路由提案](../../proposed/architecture/2026-08-18-peck-distribution-and-metered-routing.zh.md) 中「Harness 验证并展示提供方上报的用量」所指的核算基石；路由、定价与收据结算将在后续改动中构建于其上。
