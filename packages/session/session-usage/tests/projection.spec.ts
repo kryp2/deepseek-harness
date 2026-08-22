@@ -196,7 +196,7 @@ function fold(events: readonly SessionEvent[]): SessionUsageProjection {
     (folded, event) => usageByRouteProjectionDefinition.apply(folded, event),
     usageByRouteProjectionDefinition.init(),
   )
-  return usageByRouteProjectionDefinition.view(state)
+  return usageByRouteProjectionDefinition.wire.view(state)
 }
 
 describe('usageByRoute fold (controlled events)', () => {

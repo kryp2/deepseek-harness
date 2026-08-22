@@ -114,10 +114,14 @@ function sortRoutes(routes: readonly UsageRouteState[]): UsageRouteState[] {
 }
 
 /** The `usageByRoute` unit registered on `ctx.sessionProjections` (exported for the unit spec). */
-export const usageByRouteProjectionDefinition: ProjectionDefinition<'usageByRoute', SessionUsageState> = {
+export const usageByRouteProjectionDefinition = {
   key: 'usageByRoute',
-  schema: sessionUsageSchema,
-  init: () => ({ lastRoute: null, byKey: {} }),
+  stateVersion: 1,
+  stateSchema: z.object({
+    lastRoute: z.object({ provider: z.string(), model: z.string() }).nullable(),
+    byKey: z.record(z.string(), usageRouteSchema),
+  }) as z.ZodType<SessionUsageState>,
+  init: (): SessionUsageState => ({ lastRoute: null, byKey: {} }),
   apply: (state, event) => {
     switch (event.type) {
       case 'request/header': {
@@ -165,21 +169,29 @@ export const usageByRouteProjectionDefinition: ProjectionDefinition<'usageByRout
         return state
     }
   },
-  view: (state) => {
-    const routes = sortRoutes(Object.values(state.byKey))
-    return {
-      routes: routes.map(route => ({
-        provider: route.provider,
-        model: route.model,
-        inputTokens: route.inputTokens,
-        outputTokens: route.outputTokens,
-        cacheReadTokens: route.cacheReadTokens,
-        cacheWriteTokens: route.cacheWriteTokens,
-        reasoningTokens: route.reasoningTokens,
-        calls: route.calls,
-      })),
-      totalCalls: routes.reduce((sum, route) => sum + route.calls, 0),
-    }
+  wire: {
+    viewSchema: sessionUsageSchema,
+    view: (state) => {
+      const routes = sortRoutes(Object.values(state.byKey))
+      return {
+        routes: routes.map(route => ({
+          provider: route.provider,
+          model: route.model,
+          inputTokens: route.inputTokens,
+          outputTokens: route.outputTokens,
+          cacheReadTokens: route.cacheReadTokens,
+          cacheWriteTokens: route.cacheWriteTokens,
+          reasoningTokens: route.reasoningTokens,
+          calls: route.calls,
+        })),
+        totalCalls: routes.reduce((sum, route) => sum + route.calls, 0),
+      }
+    },
   },
-  stateVersion: 1,
+} satisfies ProjectionDefinition<'usageByRoute', SessionUsageState>
+
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    usageByRoute: SessionUsageState
+  }
 }

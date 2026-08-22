@@ -111,13 +111,11 @@ export function parseSignedReceipt(value: unknown): SignedMeteredReceipt {
 /**
  * Projection definition for session metered receipts summary.
  */
-export const meteredReceiptsProjectionDefinition: ProjectionDefinition<
-  'meteredReceipts',
-  SignedMeteredReceipt[]
-> = {
+export const meteredReceiptsProjectionDefinition = {
   key: 'meteredReceipts',
-  schema: sessionReceiptsSummarySchema,
-  init: () => [],
+  stateVersion: 1,
+  stateSchema: z.array(signedMeteredReceiptSchema) as z.ZodType<SignedMeteredReceipt[]>,
+  init: () => [] as SignedMeteredReceipt[],
   apply: (state, event) => {
     if (event.type === 'peck/metered-receipt') {
       const parsed = signedMeteredReceiptSchema.safeParse(event.data)
@@ -127,12 +125,23 @@ export const meteredReceiptsProjectionDefinition: ProjectionDefinition<
     }
     return state
   },
-  view: state => ({
-    totalChargedSats: state.reduce((sum, r) => sum + r.chargeSats, 0),
-    receiptCount: state.length,
-    receipts: state,
-  }),
-  stateVersion: 1,
+  wire: {
+    viewSchema: sessionReceiptsSummarySchema,
+    view: (state: SignedMeteredReceipt[]) => ({
+      totalChargedSats: state.reduce((sum, r) => sum + r.chargeSats, 0),
+      receiptCount: state.length,
+      receipts: state,
+    }),
+  },
+} satisfies ProjectionDefinition<'meteredReceipts', SignedMeteredReceipt[]>
+
+declare module '@deepseek-ai/dsh-session-projection/types' {
+  interface SessionProjectionStateMap {
+    meteredReceipts: SignedMeteredReceipt[]
+  }
+  interface SessionProjectionMap {
+    meteredReceipts: SessionReceiptsSummary
+  }
 }
 
 export const name = 'session-metered-receipt'
