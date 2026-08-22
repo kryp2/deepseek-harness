@@ -1,13 +1,13 @@
 # IN_FLIGHT — deepseek-harness (Peck fork)
-_Sist oppdatert: 2026-08-22 (post full upstream-sync)_
+_Sist oppdatert: 2026-08-22 (post-sync restart gjennomført)_
 
 ## Sist gjort
+- 22.08 kveld: **`dsh-web.service` restartet — GUI er oppe igjen.** Prosessen kjørte fortsatt pre-sync host fra 01:45 mot 18:14-klientbygget, så siden døde på «`__ModuleLoader__` bootstrap facade is missing». Restarten avdekket den ekte blokkeringen: alle tre statiske host-plugins i `peck-meta/tools/*.plugin.mjs` lå på pre-sync cordis-kontrakt (`bash`-tjenesten heter nå `shell`; udeklarert `ctx.tools` kaster). Fikset i peck-meta PR #15; boot grønn, 0 restarts, 37 klient-plugins aktive.
 - 22.08: **FULL UPSTREAM SYNC MERGET** — PR #10 (`edcae975`): 750 commits inn (0.1.1-rc.2-familien), drift 743 → 0. Våre pakker portet til ny ProjectionDefinition-kontrakt; versjoner alignet til rc.2; lockfile/notiser/kataloger regenerert; zh-tabeller speilet; doc-sync 28/28, typecheck 0 feil, test:gui 3997 grønne.
 - 22.08: Farge-fullføring merget (#9, `3fdd38f01e`). Attribusjonsreglen klarget i peck-to/CLAUDE.md + AGENTS.md: `Agent:`-linje FØRST i PR-body når agent har bidratt; commit-trailere forblir hook-skrevne.
 - 22.08: PR #28 (llm-gateway docs) og #83 (overlay PoW-term) merget på Thomas' autorisasjon.
 
 ## Neste
-- **Restart `dsh-web.service`** ved neste anledning — alt forberedt av ryddeøkt 22.08 kveld: master = `3afa483a8a` (origin synk), BÅDE host- og klient-facet bygd (host-lib tree-identisk med sync-mergen; 37 klient-bundles + apps/web/dist fornya). Restart alene aktiverer alt; dropper åpne GUI-økter.
 - Gateway-siden av C.3: pin `peck/v1/inference-receipt` i llm-gateway (G1-arbeidet der er startet, branch feat/g1-spv-channel-verification).
 - Canary-riggen (C.5): precheck (nøkkelkunde-verifisering) → ENFORCE_PAYMENT via tagget revisjon → én målt deepseek-v4-flash-strøm.
 - **Ukentlig sync-rutine**: fetch upstream + merge inn i `sync/upstream-<dato>` + porter + Telegram-rapport — nå er deltaet smått (~100 commits/uke).
