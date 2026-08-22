@@ -7,10 +7,11 @@ _Sist oppdatert: 2026-08-22 (post full upstream-sync)_
 - 22.08: PR #28 (llm-gateway docs) og #83 (overlay PoW-term) merget på Thomas' autorisasjon.
 
 ## Neste
-- **Restart `dsh-web.service`** ved neste anledning — master inneholder nå synken + alt annet; lib/ er allerede bygget lokalt.
+- **Restart `dsh-web.service`** ved neste anledning — alt forberedt av ryddeøkt 22.08 kveld: master = `3afa483a8a` (origin synk), BÅDE host- og klient-facet bygd (host-lib tree-identisk med sync-mergen; 37 klient-bundles + apps/web/dist fornya). Restart alene aktiverer alt; dropper åpne GUI-økter.
 - Gateway-siden av C.3: pin `peck/v1/inference-receipt` i llm-gateway (G1-arbeidet der er startet, branch feat/g1-spv-channel-verification).
 - Canary-riggen (C.5): precheck (nøkkelkunde-verifisering) → ENFORCE_PAYMENT via tagget revisjon → én målt deepseek-v4-flash-strøm.
 - **Ukentlig sync-rutine**: fetch upstream + merge inn i `sync/upstream-<dato>` + porter + Telegram-rapport — nå er deltaet smått (~100 commits/uke).
+- Ryddeøkt 22.08 kveld: 11 stale remote-branches slettet på kryp2/peck-harness (alle verifisert innhold i master via ancestry/git-cherry/fil-diff), lokale branch-trær = kun master, deployment-traps + IN_FLIGHT landet (`3afa483a8a`), claude-cli retestet grønt post-sync (37/37), full build kjørt (host+client).
 
 ## Blokkert / venter på
 - Upstream er pull-only speiling; sync = fetch upstream + merge inn i kryp2/peck-harness.
