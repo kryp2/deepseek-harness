@@ -1,12 +1,17 @@
 # IN_FLIGHT — deepseek-harness (Peck fork)
-_Sist oppdatert: 2026-08-19_
+_Sist oppdatert: 2026-08-22 (post full upstream-sync)_
 
 ## Sist gjort
-- master = 10f63a51c0: landed user-questions waterfall + telegram-answerer (#3), and Peck Harness rebrand (Peck logo, wordmark, "Pecking..." status, Amber Spark / Woodpecker color palette). All unit tests and typechecks green (1016/1016 UI tests pass).
+- 22.08: **FULL UPSTREAM SYNC MERGET** — PR #10 (`edcae975`): 750 commits inn (0.1.1-rc.2-familien), drift 743 → 0. Våre pakker portet til ny ProjectionDefinition-kontrakt; versjoner alignet til rc.2; lockfile/notiser/kataloger regenerert; zh-tabeller speilet; doc-sync 28/28, typecheck 0 feil, test:gui 3997 grønne.
+- 22.08: Farge-fullføring merget (#9, `3fdd38f01e`). Attribusjonsreglen klarget i peck-to/CLAUDE.md + AGENTS.md: `Agent:`-linje FØRST i PR-body når agent har bidratt; commit-trailere forblir hook-skrevne.
+- 22.08: PR #28 (llm-gateway docs) og #83 (overlay PoW-term) merget på Thomas' autorisasjon.
 
 ## Neste
-- Plan C.3: Freeze receipt schema + golden vectors for metered routing (overlay-schema repo owns; harness + gateway pin one revision).
-- Rebuild/restart live deployment in quiet window to reflect the new UI and Telegram answerer.
+- **Restart `dsh-web.service`** ved neste anledning — master inneholder nå synken + alt annet; lib/ er allerede bygget lokalt.
+- Gateway-siden av C.3: pin `peck/v1/inference-receipt` i llm-gateway (G1-arbeidet der er startet, branch feat/g1-spv-channel-verification).
+- Canary-riggen (C.5): precheck (nøkkelkunde-verifisering) → ENFORCE_PAYMENT via tagget revisjon → én målt deepseek-v4-flash-strøm.
+- **Ukentlig sync-rutine**: fetch upstream + merge inn i `sync/upstream-<dato>` + porter + Telegram-rapport — nå er deltaet smått (~100 commits/uke).
 
 ## Blokkert / venter på
-- Upstream: PRs disabled + Discussions posting blocked for OAuth token. Use browser or a separate writable token.
+- Upstream er pull-only speiling; sync = fetch upstream + merge inn i kryp2/peck-harness.
+- pnpm A3: bruk alltid `npx -y pnpm@11.7.0`; node_modules er nå reinstallert på 11.7.0 (purge godkjent av Thomas 22.08).
