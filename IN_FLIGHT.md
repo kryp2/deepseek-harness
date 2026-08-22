@@ -1,7 +1,8 @@
 # IN_FLIGHT — deepseek-harness (Peck fork)
-_Sist oppdatert: 2026-08-22 (post-sync restart gjennomført)_
+_Sist oppdatert: 2026-08-22 (post-sync GUI gjenopprettet)_
 
 ## Sist gjort
+- 22.08 kveld: **GUI-et er helt tilbake** (PR #11, `1fbe7c0dbf`). To post-sync-regresjoner: (1) merkevaren lå i nye slots som `ui-brand-official` bare fyller under `DSH_CLIENT_BUILD_PROFILE=official` ⇒ **forken MÅ bygges med `pnpm run build:official`**, ellers ryker fugl + «Peck Harness»; (2) `agent.inject()` med rå streng (peck-meta-digesten) forgiftet innboksen ⇒ `queueItems` kastet ⇒ WebSocket-upgrade rev socketen ⇒ ingen workspace/sesjoner lastet. `Inbox` reparerer nå slike poster ved replay. ⚠️ 5 repo-porter (constraints, licenses, docs:build:mpa, module graph, knip) er RØDE på master fra før — verifisert identiske på master og branch, ikke rør dem i forbifarten.
 - 22.08 kveld: **`dsh-web.service` restartet — GUI er oppe igjen.** Prosessen kjørte fortsatt pre-sync host fra 01:45 mot 18:14-klientbygget, så siden døde på «`__ModuleLoader__` bootstrap facade is missing». Restarten avdekket den ekte blokkeringen: alle tre statiske host-plugins i `peck-meta/tools/*.plugin.mjs` lå på pre-sync cordis-kontrakt (`bash`-tjenesten heter nå `shell`; udeklarert `ctx.tools` kaster). Fikset i peck-meta PR #15; boot grønn, 0 restarts, 37 klient-plugins aktive.
 - 22.08: **FULL UPSTREAM SYNC MERGET** — PR #10 (`edcae975`): 750 commits inn (0.1.1-rc.2-familien), drift 743 → 0. Våre pakker portet til ny ProjectionDefinition-kontrakt; versjoner alignet til rc.2; lockfile/notiser/kataloger regenerert; zh-tabeller speilet; doc-sync 28/28, typecheck 0 feil, test:gui 3997 grønne.
 - 22.08: Farge-fullføring merget (#9, `3fdd38f01e`). Attribusjonsreglen klarget i peck-to/CLAUDE.md + AGENTS.md: `Agent:`-linje FØRST i PR-body når agent har bidratt; commit-trailere forblir hook-skrevne.
