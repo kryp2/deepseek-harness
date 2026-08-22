@@ -8,6 +8,28 @@ import type { MessageId } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEventMap, UserMessage } from '@deepseek-ai/dsh-session'
 import type { InboxTarget } from './types.ts'
 
+/**
+ * Repair one persisted inbox entry that predates the full message
+ * representation: those splices stored the queued prompt as raw text, so
+ * replaying them puts a bare string where every consumer reads `id`, `content`,
+ * and `source`. The slot is preserved rather than dropped because later splices
+ * in the same log address positions, and the text survives as the message body.
+ * @param entry - one `inserted` element as the durable log holds it.
+ * @param seq - session seq of the splice event, for a stable repaired identity.
+ * @param index - position within that splice, for a stable repaired identity.
+ * @returns the entry unchanged when it is already a message, else its repair.
+ */
+function repairPersistedEntry(entry: UserMessage, seq: number, index: number): UserMessage {
+  if (typeof entry === 'object' && entry !== null && 'source' in entry) return entry
+  const text: string = typeof entry === 'string' ? entry : JSON.stringify(entry)
+  return {
+    id: `legacy-inbox-${String(seq)}-${String(index)}` as MessageId,
+    role: 'user',
+    content: [{ type: 'text', text }],
+    source: { kind: 'plugin', plugin: 'legacy-inbox-entry' },
+  }
+}
+
 /** Mutable state privately owned by an {@link Inbox}. */
 type InboxState = Record<InboxTarget, UserMessage[]>
 
@@ -32,7 +54,10 @@ export class Inbox {
     for (const event of session.events.slice(session.header.seedLength ?? 0)) {
       if (event.type !== 'agent/inbox/spliced') continue
       try {
-        this.apply(event.data)
+        this.apply({
+          ...event.data,
+          inserted: event.data.inserted.map((entry, index) => repairPersistedEntry(entry, event.seq, index)),
+        })
       } catch (error: unknown) {
         throw new Error(`invalid persisted inbox splice at session seq ${event.seq}`, { cause: error })
       }
